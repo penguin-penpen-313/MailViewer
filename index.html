@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MailFocus">
+  <link rel="manifest" href="manifest.json">
+  <title>MailFocus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --surface2: #1a1a24;
+      --surface3: #22223a;
+      --border: rgba(255,255,255,0.06);
+      --border2: rgba(255,255,255,0.12);
+      --accent: #7c6af7;
+      --accent2: #a78bfa;
+      --accent-glow: rgba(124,106,247,0.3);
+      --star: #f59e0b;
+      --unread: #34d399;
+      --danger: #f87171;
+      --text: #e8e8f0;
+      --text2: #9090a8;
+      --text3: #5a5a78;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --radius: 12px;
+      --radius-lg: 20px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-display);
+      overflow: hidden;
+    }
+
+    /* ── Layout ── */
+    #app {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      height: 100dvh;
+      max-width: 520px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 20px 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent2), #c4b5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-badges {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .badge-unread {
+      background: rgba(52,211,153,0.15);
+      color: var(--unread);
+      border: 1px solid rgba(52,211,153,0.25);
+    }
+
+    .badge-star {
+      background: rgba(245,158,11,0.15);
+      color: var(--star);
+      border: 1px solid rgba(245,158,11,0.25);
+    }
+
+    /* ── Tab Bar ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 16px 20px 12px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text3);
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .tab.active {
+      background: var(--surface2);
+      border-color: var(--accent);
+      color: var(--accent2);
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .tab:hover:not(.active) {
+      background: var(--surface);
+      color: var(--text2);
+    }
+
+    /* ── Scroll Area ── */
+    .scroll-area {
+      overflow-y: auto;
+      padding: 0 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .scroll-area::-webkit-scrollbar { width: 3px; }
+    .scroll-area::-webkit-scrollbar-track { background: transparent; }
+    .scroll-area::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+    /* ── Mail List ── */
+    .mail-list { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; }
+
+    .mail-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mail-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--accent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .mail-card.unread::before { opacity: 1; background: var(--unread); }
+    .mail-card.starred::before { opacity: 1; background: var(--star); }
+
+    .mail-card:active { transform: scale(0.98); }
+
+    .mail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 5px; }
+
+    .mail-from {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mail-card:not(.unread) .mail-from { font-weight: 400; color: var(--text2); }
+
+    .mail-date {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text3);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .mail-subject {
+      font-size: 13px;
+      color: var(--text2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+
+    .mail-card.unread .mail-subject { color: var(--text); font-weight: 600; }
+
+    .mail-snippet {
+      font-size: 12px;
+      color: var(--text3);
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+    }
+
+    .mail-icons {
+      display: flex;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .icon-tag {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      padding: 2px 7px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .tag-unread { background: rgba(52,211,153,0.1); color: var(--unread); }
+    .tag-starred { background: rgba(245,158,11,0.1); color: var(--star); }
+
+    /* ── Mail Detail Overlay ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 100;
+      display: flex;
+      align-items: flex-end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      backdrop-filter: blur(4px);
+    }
+
+    .overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .detail-sheet {
+      background: var(--surface);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      border-top: 1px solid var(--border2);
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      max-height: 88dvh;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
+    }
+
+    .overlay.open .detail-sheet { transform: translateY(0); }
+
+    .sheet-handle {
+      width: 36px; height: 4px;
+      background: var(--surface3);
+      border-radius: 2px;
+      margin: 12px auto 0;
+      flex-shrink: 0;
+    }
+
+    .sheet-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .sheet-subject {
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+
+    .sheet-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .sheet-meta-row {
+      display: flex;
+      gap: 8px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+
+    .meta-label { color: var(--text3); min-width: 30px; }
+    .meta-value { color: var(--text2); }
+
+    .sheet-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text2);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .sheet-body::-webkit-scrollbar { width: 3px; }
+    .sheet-body::-webkit-scrollbar-thumb { background: var(--surface3); }
+
+    /* ── Action Buttons ── */
+    .sheet-actions {
+      padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 13px 8px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .action-btn:active { transform: scale(0.96); }
+
+    .btn-reply { background: rgba(124,106,247,0.15); border-color: var(--accent); color: var(--accent2); }
+    .btn-reply:hover { background: rgba(124,106,247,0.25); box-shadow: 0 0 16px var(--accent-glow); }
+    .btn-read { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.3); color: var(--unread); }
+    .btn-read:hover { background: rgba(52,211,153,0.2); }
+    .btn-unread { background: var(--surface2); }
+    .btn-unread:hover { background: var(--surface3); }
+
+    /* ── Loading Skeleton ── */
+    .skeleton {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+
+    .skel-line {
+      height: 12px;
+      background: linear-gradient(90deg, var(--surface2) 0%, var(--surface3) 50%, var(--surface2) 100%);
+      background-size: 200% 100%;
+      border-radius: 6px;
+      animation: shimmer 1.5s infinite;
+      margin-bottom: 8px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .skel-line:last-child { margin-bottom: 0; width: 60%; }
+
+    /* ── Empty / Error State ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text3);
+    }
+
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-title { font-size: 16px; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
+    .empty-sub { font-size: 13px; line-height: 1.5; }
+
+    /* ── Refresh Button ── */
+    .refresh-btn {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--text2);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-left: auto;
+    }
+
+    .refresh-btn:hover { background: var(--surface2); color: var(--text); }
+    .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── ToDo Section ── */
+    .todo-section { padding-bottom: 16px; }
+
+    .todo-input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .todo-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 11px 14px;
+      color: var(--text);
+      font-family: var(--font-display);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .todo-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .todo-input::placeholder { color: var(--text3); }
+
+    .todo-add-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: white;
+      width: 44px;
+      font-size: 22px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .todo-add-btn:hover { background: var(--accent2); box-shadow: 0 0 16px var(--accent-glow); }
+    .todo-add-btn:active { transform: scale(0.93); }
+
+    .todo-items { display: flex; flex-direction: column; gap: 7px; }
+
+    .todo-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .todo-item.done {
+      opacity: 0.5;
+      border-color: var(--border);
+    }
+
+    .todo-check {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--border2);
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      background: transparent;
+    }
+
+    .todo-check:hover { border-color: var(--accent); }
+    .todo-item.done .todo-check { background: var(--accent); border-color: var(--accent); }
+    .todo-check-icon { color: white; font-size: 11px; display: none; }
+    .todo-item.done .todo-check-icon { display: block; }
+
+    .todo-text {
+      flex: 1;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .todo-item.done .todo-text {
+      text-decoration: line-through;
+      color: var(--text3);
+    }
+
+    .todo-delete {
+      background: transparent;
+      border: none;
+      color: var(--text3);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      border-radius: 6px;
+      transition: all 0.2s;
+      line-height: 1;
+    }
+
+    .todo-delete:hover { color: var(--danger); background: rgba(248,113,113,0.1); }
+
+    .todo-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--text3);
+      font-family: var(--font-mono);
+    }
+
+    .todo-clear {
+      background: transparent;
+      border: none;
+      color: var(--text3);
+      cursor: pointer;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      transition: color 0.2s;
+    }
+
+    .todo-clear:hover { color: var(--danger); }
+
+    /* ── Bottom Nav ── */
+    nav {
+      display: flex;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+    }
+
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 8px;
+      background: transparent;
+      border: none;
+      color: var(--text3);
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+      position: relative;
+    }
+
+    .nav-btn.active { color: var(--accent2); }
+    .nav-btn .nav-icon { font-size: 20px; transition: transform 0.2s; }
+    .nav-btn:active .nav-icon { transform: scale(0.88); }
+
+    .nav-dot {
+      position: absolute;
+      top: 6px;
+      right: calc(50% - 16px);
+      width: 6px; height: 6px;
+      background: var(--unread);
+      border-radius: 50%;
+      display: none;
+    }
+
+    .nav-btn.has-dot .nav-dot { display: block; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 100px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 200;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Reply Panel ── */
+    .reply-panel {
+      border-top: 1px solid var(--border2);
+      background: var(--surface2);
+      flex-shrink: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(0.32,0.72,0,1);
+    }
+
+    .reply-panel.open { max-height: 320px; }
+
+    .reply-inner { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+    .reply-to-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text3);
+    }
+
+    .reply-to-addr {
+      color: var(--accent2);
+      background: rgba(124,106,247,0.1);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 11px;
+    }
+
+    .reply-textarea {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      color: var(--text);
+      font-family: var(--font-display);
+      font-size: 14px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      height: 110px;
+      transition: border-color 0.2s;
+    }
+
+    .reply-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .reply-textarea::placeholder { color: var(--text3); }
+
+    .reply-footer { display: flex; justify-content: flex-end; gap: 8px; }
+
+    .reply-cancel-btn {
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      color: var(--text2);
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .reply-cancel-btn:hover { background: var(--surface3); }
+
+    .reply-send-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: white;
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 22px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .reply-send-btn:hover { background: var(--accent2); box-shadow: 0 0 16px var(--accent-glow); }
+    .reply-send-btn:active { transform: scale(0.95); }
+    .reply-send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .sending-spinner {
+      width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    /* ── Signature Settings Modal ── */
+    .settings-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      backdrop-filter: blur(4px);
+    }
+    .settings-modal.open { opacity: 1; pointer-events: all; }
+
+    .settings-sheet {
+      background: var(--surface);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      border-top: 1px solid var(--border2);
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 0 0 calc(20px + env(safe-area-inset-bottom));
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
+    }
+    .settings-modal.open .settings-sheet { transform: translateY(0); }
+
+    .settings-handle {
+      width: 36px; height: 4px;
+      background: var(--surface3);
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+
+    .settings-title {
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 20px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .settings-close {
+      background: transparent;
+      border: none;
+      color: var(--text3);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+    .settings-close:hover { color: var(--text); }
+
+    .settings-body { padding: 0 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+    .settings-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text3);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .sig-textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      color: var(--text);
+      font-family: var(--font-display);
+      font-size: 14px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      height: 90px;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+    .sig-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .sig-textarea::placeholder { color: var(--text3); }
+
+    .settings-save-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: white;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    .settings-save-btn:hover { background: var(--accent2); box-shadow: 0 0 16px var(--accent-glow); }
+
+    /* ── Draft indicator ── */
+    .draft-indicator {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--star);
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+    .draft-indicator.visible { display: flex; }
+
+    /* ── Settings gear button ── */
+    .settings-gear {
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--text3);
+      width: 32px; height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .settings-gear:hover { background: var(--surface2); color: var(--text); }
+
+    /* ── Reply panel extended height for quote ── */
+    .reply-panel.open { max-height: 520px; }
+
+    .reply-quote {
+      background: var(--bg);
+      border-left: 3px solid var(--surface3);
+      border-radius: 0 8px 8px 0;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--text3);
+      line-height: 1.6;
+      max-height: 80px;
+      overflow: hidden;
+      font-family: var(--font-mono);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .quote-label {
+      font-size: 10px;
+      color: var(--text3);
+      font-family: var(--font-mono);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    /* ── Scrollable wrapper fix ── */
+    .view { display: none; flex-direction: column; height: 100%; }
+    .view.active { display: flex; }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text3);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- Header -->
+  <header>
+    <div class="logo">MailFocus</div>
+    <div class="header-badges">
+      <span class="badge badge-unread" id="unread-count">…</span>
+      <span class="badge badge-star" id="star-count">…</span>
+    </div>
+    <button class="settings-gear" onclick="openSettings()" title="署名設定">⚙️</button>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadEmails()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    </button>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs" id="tabs-bar">
+    <button class="tab active" onclick="switchMailTab('unread')" id="tab-unread">
+      <span>📬</span> 未読
+    </button>
+    <button class="tab" onclick="switchMailTab('starred')" id="tab-starred">
+      <span>⭐</span> スター
+    </button>
+  </div>
+
+  <!-- Main content area (swapped by nav) -->
+  <div class="scroll-area" id="main-scroll">
+    <!-- Mail View -->
+    <div class="view active" id="view-mail">
+      <div id="mail-list-unread" class="mail-list"></div>
+      <div id="mail-list-starred" class="mail-list" style="display:none"></div>
+    </div>
+
+    <!-- ToDo View -->
+    <div class="view" id="view-todo">
+      <div class="todo-section">
+        <div class="section-label">タスク</div>
+        <div class="todo-input-row">
+          <input type="text" class="todo-input" id="todo-input" placeholder="新しいタスクを追加…" maxlength="120">
+          <button class="todo-add-btn" onclick="addTodo()">＋</button>
+        </div>
+        <div class="todo-items" id="todo-items"></div>
+        <div class="todo-footer">
+          <span id="todo-count">0 件</span>
+          <button class="todo-clear" onclick="clearDoneTodos()">完了済みを削除</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav>
+    <button class="nav-btn active has-dot" id="nav-mail" onclick="switchView('mail')">
+      <div class="nav-icon">📬</div>
+      <span>メール</span>
+      <div class="nav-dot"></div>
+    </button>
+    <button class="nav-btn" id="nav-todo" onclick="switchView('todo')">
+      <div class="nav-icon">✅</div>
+      <span>ToDo</span>
+      <div class="nav-dot"></div>
+    </button>
+  </nav>
+</div>
+
+<!-- Mail Detail Overlay -->
+<div class="overlay" id="detail-overlay" onclick="handleOverlayClick(event)">
+  <div class="detail-sheet" id="detail-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-subject" id="detail-subject">—</div>
+      <div class="sheet-meta">
+        <div class="sheet-meta-row"><span class="meta-label">From</span><span class="meta-value" id="detail-from">—</span></div>
+        <div class="sheet-meta-row"><span class="meta-label">To</span><span class="meta-value" id="detail-to">—</span></div>
+        <div class="sheet-meta-row"><span class="meta-label">Date</span><span class="meta-value" id="detail-date">—</span></div>
+      </div>
+    </div>
+    <div class="sheet-body" id="detail-body">読み込み中…</div>
+
+    <!-- Reply Panel (slides in above actions) -->
+    <div class="reply-panel" id="reply-panel">
+      <div class="reply-inner">
+        <div class="reply-to-row">
+          宛先: <span class="reply-to-addr" id="reply-to-addr">—</span>
+          <span class="draft-indicator" id="draft-indicator">💾 下書き保存済み</span>
+        </div>
+        <!-- Original mail quote -->
+        <div id="reply-quote-block" style="display:none">
+          <div class="quote-label">引用元</div>
+          <div class="reply-quote" id="reply-quote-text"></div>
+        </div>
+        <textarea class="reply-textarea" id="reply-textarea" placeholder="返信を入力…"></textarea>
+        <div class="reply-footer">
+          <button class="reply-cancel-btn" onclick="closeReply()">キャンセル</button>
+          <button class="reply-send-btn" id="reply-send-btn" onclick="sendReply()">
+            <span id="reply-send-label">送信 ↗</span>
+            <span class="sending-spinner" id="reply-spinner" style="display:none"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sheet-actions">
+      <button class="action-btn btn-reply" onclick="toggleReply()">↩ 返信</button>
+      <button class="action-btn btn-read" onclick="markRead()">✓ 既読</button>
+      <button class="action-btn btn-unread" onclick="markUnread()">● 未読</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="settings-modal" id="settings-modal" onclick="handleSettingsClick(event)">
+  <div class="settings-sheet">
+    <div class="settings-handle"></div>
+    <div class="settings-title">
+      ⚙️ 設定
+      <button class="settings-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="settings-body">
+      <div>
+        <div class="settings-label">署名</div>
+        <textarea class="sig-textarea" id="sig-textarea" placeholder="例：よろしくお願いします。&#10;山田 太郎"></textarea>
+      </div>
+      <button class="settings-save-btn" onclick="saveSettings()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──
+let emails = { unread: [], starred: [] };
+let currentMail = null;
+let currentMailTab = 'unread';
+let ANTHROPIC_KEY = '';
+
+// ── Init ──
+async function init() {
+  loadTodos();
+  await loadEmails();
+}
+
+// ── Email Loading via Claude API ──
+async function loadEmails() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  setListLoading('unread');
+  setListLoading('starred');
+
+  try {
+    const [unreadRes, starredRes] = await Promise.all([
+      fetchMailsFromClaude('label:unread', 20),
+      fetchMailsFromClaude('label:starred', 20)
+    ]);
+    emails.unread = unreadRes;
+    emails.starred = starredRes;
+    renderMailList('unread');
+    renderMailList('starred');
+    updateBadges();
+  } catch (e) {
+    showError('unread', e.message);
+    showError('starred', e.message);
+  } finally {
+    btn.classList.remove('spinning');
+  }
+}
+
+async function fetchMailsFromClaude(query, maxResults) {
+  const prompt = `Use the Gmail MCP tool to search emails with query "${query}", fetch up to ${maxResults} results.
+For each email return a JSON array with objects having these fields:
+- id (string)
+- threadId (string)
+- from (string, just name or email)
+- to (string)
+- subject (string)
+- date (string, formatted as YYYY/MM/DD HH:mm)
+- snippet (string, first 100 chars of body)
+- body (string, plain text body up to 500 chars)
+- isUnread (boolean)
+- isStarred (boolean)
+
+Reply ONLY with the raw JSON array, no markdown, no explanation.`;
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      system: 'You are a helpful assistant that retrieves Gmail data using MCP tools. Always return valid JSON arrays only.',
+      messages: [{ role: 'user', content: prompt }],
+      mcp_servers: [{ type: 'url', url: 'https://gmail.mcp.claude.com/mcp', name: 'gmail-mcp' }]
+    })
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || `API error ${resp.status}`);
+  }
+
+  const data = await resp.json();
+  const text = data.content
+    .filter(b => b.type === 'text')
+    .map(b => b.text)
+    .join('');
+
+  try {
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    console.error('Parse error, raw:', text.slice(0, 500));
+    return [];
+  }
+}
+
+// ── Render ──
+function setListLoading(type) {
+  const el = document.getElementById(`mail-list-${type}`);
+  el.innerHTML = [1,2,3,4].map(() => `
+    <div class="skeleton">
+      <div class="skel-line" style="width:40%;height:10px"></div>
+      <div class="skel-line" style="width:80%"></div>
+      <div class="skel-line"></div>
+    </div>`).join('');
+}
+
+function showError(type, msg) {
+  const el = document.getElementById(`mail-list-${type}`);
+  el.innerHTML = `<div class="empty-state">
+    <div class="empty-icon">⚠️</div>
+    <div class="empty-title">読み込みエラー</div>
+    <div class="empty-sub">${msg}<br>上の更新ボタンを試してください</div>
+  </div>`;
+}
+
+function renderMailList(type) {
+  const el = document.getElementById(`mail-list-${type}`);
+  const list = emails[type];
+
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">${type === 'unread' ? '📭' : '⭐'}</div>
+      <div class="empty-title">${type === 'unread' ? '未読メールなし' : 'スターなし'}</div>
+      <div class="empty-sub">すべて確認済みです</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = list.map((m, i) => {
+    const tags = [];
+    if (m.isUnread) tags.push(`<span class="icon-tag tag-unread">● 未読</span>`);
+    if (m.isStarred) tags.push(`<span class="icon-tag tag-starred">★ スター</span>`);
+    return `
+    <div class="mail-card ${m.isUnread ? 'unread' : ''} ${m.isStarred ? 'starred' : ''}"
+         onclick="openMail('${type}', ${i})">
+      <div class="mail-header">
+        <div class="mail-from">${escHtml(m.from)}</div>
+        <div class="mail-date">${m.date || ''}</div>
+      </div>
+      <div class="mail-subject">${escHtml(m.subject || '(件名なし)')}</div>
+      <div class="mail-snippet">${escHtml(m.snippet || '')}</div>
+      ${tags.length ? `<div class="mail-icons">${tags.join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function updateBadges() {
+  const u = emails.unread.filter(m => m.isUnread).length;
+  const s = emails.starred.length;
+  document.getElementById('unread-count').textContent = `${u} 未読`;
+  document.getElementById('star-count').textContent = `★ ${s}`;
+  const navMail = document.getElementById('nav-mail');
+  if (u > 0) navMail.classList.add('has-dot'); else navMail.classList.remove('has-dot');
+}
+
+// ── Mail Detail ──
+function openMail(type, idx) {
+  currentMail = { ...emails[type][idx], _type: type, _idx: idx };
+  document.getElementById('detail-subject').textContent = currentMail.subject || '(件名なし)';
+  document.getElementById('detail-from').textContent = currentMail.from || '—';
+  document.getElementById('detail-to').textContent = currentMail.to || '—';
+  document.getElementById('detail-date').textContent = currentMail.date || '—';
+  document.getElementById('detail-body').textContent = currentMail.body || currentMail.snippet || '(本文なし)';
+  document.getElementById('detail-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail() {
+  const panel = document.getElementById('reply-panel');
+  const ta = document.getElementById('reply-textarea');
+  // Save draft before closing if panel was open
+  if (panel.classList.contains('open') && currentMail?.id && ta.value.trim()) {
+    saveDraft(currentMail.id, ta.value);
+  }
+  panel.classList.remove('open');
+  ta.value = '';
+  ta.oninput = null;
+  showDraftIndicator(false);
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  currentMail = null;
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('detail-overlay')) closeDetail();
+}
+
+async function markRead() {
+  if (!currentMail) return;
+  await changeMailStatus(currentMail.id, 'read');
+  emails[currentMail._type][currentMail._idx].isUnread = false;
+  renderMailList(currentMail._type);
+  updateBadges();
+  closeDetail();
+  showToast('✓ 既読にしました');
+}
+
+async function markUnread() {
+  if (!currentMail) return;
+  await changeMailStatus(currentMail.id, 'unread');
+  emails[currentMail._type][currentMail._idx].isUnread = true;
+  renderMailList(currentMail._type);
+  updateBadges();
+  closeDetail();
+  showToast('● 未読に戻しました');
+}
+
+async function changeMailStatus(id, status) {
+  try {
+    await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 256,
+        messages: [{
+          role: 'user',
+          content: `Mark Gmail message id "${id}" as ${status} using the Gmail MCP tool. Just do it, no explanation needed.`
+        }],
+        mcp_servers: [{ type: 'url', url: 'https://gmail.mcp.claude.com/mcp', name: 'gmail-mcp' }]
+      })
+    });
+  } catch (e) {
+    console.error('Status change error:', e);
+  }
+}
+
+// ── Signature & Settings ──
+let signature = '';
+
+function loadSettings() {
+  signature = localStorage.getItem('mf-signature') || '';
+}
+
+// ── Draft (auto-save per mail id) ──
+let draftTimer = null;
+
+function getDraftKey(mailId) { return `mf-draft-${mailId}`; }
+
+function loadDraft(mailId) {
+  try { return localStorage.getItem(getDraftKey(mailId)) || ''; } catch { return ''; }
+}
+
+function saveDraft(mailId, text) {
+  try {
+    if (text.trim()) {
+      localStorage.setItem(getDraftKey(mailId), text);
+    } else {
+      localStorage.removeItem(getDraftKey(mailId));
+    }
+  } catch {}
+}
+
+function clearDraft(mailId) {
+  try { localStorage.removeItem(getDraftKey(mailId)); } catch {}
+}
+
+function showDraftIndicator(visible) {
+  document.getElementById('draft-indicator').classList.toggle('visible', visible);
+}
+
+// ── Reply Panel ──
+function toggleReply() {
+  const panel = document.getElementById('reply-panel');
+  const isOpen = panel.classList.contains('open');
+  if (isOpen) {
+    closeReply();
+  } else {
+    panel.classList.add('open');
+    document.getElementById('reply-to-addr').textContent = currentMail?.from || '—';
+
+    // ① Quote: show original mail body
+    const quoteBlock = document.getElementById('reply-quote-block');
+    const quoteText = document.getElementById('reply-quote-text');
+    const originalBody = (currentMail?.body || currentMail?.snippet || '').trim();
+    if (originalBody) {
+      quoteText.textContent = originalBody.slice(0, 300) + (originalBody.length > 300 ? '…' : '');
+      quoteBlock.style.display = '';
+    } else {
+      quoteBlock.style.display = 'none';
+    }
+
+    // ② Draft: restore saved draft or build default with signature
+    const savedDraft = loadDraft(currentMail?.id || '');
+    const ta = document.getElementById('reply-textarea');
+    if (savedDraft) {
+      ta.value = savedDraft;
+      showDraftIndicator(true);
+    } else {
+      // ③ Signature: pre-fill with blank line + separator + signature
+      const sig = signature.trim();
+      ta.value = sig ? `\n\n--\n${sig}` : '';
+    }
+
+    // Place cursor at top
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(0, 0);
+      ta.scrollTop = 0;
+    }, 360);
+
+    // Auto-save draft on input
+    ta.oninput = () => {
+      clearTimeout(draftTimer);
+      draftTimer = setTimeout(() => {
+        saveDraft(currentMail?.id || '', ta.value);
+        showDraftIndicator(true);
+      }, 800);
+    };
+  }
+}
+
+function closeReply() {
+  document.getElementById('reply-panel').classList.remove('open');
+  const ta = document.getElementById('reply-textarea');
+  // Save draft on close if there's content
+  if (currentMail?.id && ta.value.trim()) {
+    saveDraft(currentMail.id, ta.value);
+  }
+  ta.oninput = null;
+  showDraftIndicator(false);
+}
+
+async function sendReply() {
+  if (!currentMail) return;
+  const ta = document.getElementById('reply-textarea');
+  const userBody = ta.value.trim();
+  if (!userBody) { showToast('⚠ 本文を入力してください'); return; }
+
+  const btn = document.getElementById('reply-send-btn');
+  const label = document.getElementById('reply-send-label');
+  const spinner = document.getElementById('reply-spinner');
+
+  btn.disabled = true;
+  label.style.display = 'none';
+  spinner.style.display = 'block';
+
+  try {
+    const subjectRaw = currentMail.subject || '';
+    const subject = subjectRaw.startsWith('Re:') ? subjectRaw : `Re: ${subjectRaw}`;
+    const to = currentMail.from || '';
+    const threadId = currentMail.threadId || '';
+
+    // Build full body: user text + quoted original
+    const originalBody = (currentMail.body || currentMail.snippet || '').trim();
+    const quotedSection = originalBody
+      ? `\n\n---\n${currentMail.from} (${currentMail.date || ''}) wrote:\n${originalBody}`
+      : '';
+    const fullBody = `${userBody}${quotedSection}`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `Send a reply email using the Gmail MCP send_email tool:
+- To: ${to}
+- Subject: ${subject}
+- Body: ${fullBody}
+- threadId: ${threadId || '(none)'}
+Just send it with no explanation.`
+        }],
+        mcp_servers: [{ type: 'url', url: 'https://gmail.mcp.claude.com/mcp', name: 'gmail-mcp' }]
+      })
+    });
+
+    if (!resp.ok) throw new Error(`API error ${resp.status}`);
+
+    // Clear draft after successful send
+    clearDraft(currentMail.id);
+
+    // Mark as read
+    await changeMailStatus(currentMail.id, 'read');
+    if (emails[currentMail._type]?.[currentMail._idx]) {
+      emails[currentMail._type][currentMail._idx].isUnread = false;
+    }
+    renderMailList(currentMail._type);
+    updateBadges();
+
+    closeReply();
+    closeDetail();
+    showToast('✉ 返信を送信しました');
+  } catch (e) {
+    showToast(`⚠ 送信失敗: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    label.style.display = '';
+    spinner.style.display = 'none';
+  }
+}
+
+// ── Settings & signature modal ──
+function openSettings() {
+  document.getElementById('sig-textarea').value = signature;
+  document.getElementById('settings-modal').classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').classList.remove('open');
+}
+
+function handleSettingsClick(e) {
+  if (e.target === document.getElementById('settings-modal')) closeSettings();
+}
+
+function saveSettings() {
+  signature = document.getElementById('sig-textarea').value;
+  localStorage.setItem('mf-signature', signature);
+  closeSettings();
+  showToast('✓ 署名を保存しました');
+}
+
+// ── Tab switching ──
+function switchMailTab(tab) {
+  currentMailTab = tab;
+  document.getElementById('tab-unread').classList.toggle('active', tab === 'unread');
+  document.getElementById('tab-starred').classList.toggle('active', tab === 'starred');
+  document.getElementById('mail-list-unread').style.display = tab === 'unread' ? '' : 'none';
+  document.getElementById('mail-list-starred').style.display = tab === 'starred' ? '' : 'none';
+}
+
+// ── View switching ──
+function switchView(view) {
+  ['mail', 'todo'].forEach(v => {
+    document.getElementById(`view-${v}`).classList.toggle('active', v === view);
+    document.getElementById(`nav-${v}`).classList.toggle('active', v === view);
+  });
+  const tabsBar = document.getElementById('tabs-bar');
+  tabsBar.style.display = view === 'mail' ? '' : 'none';
+}
+
+// ── ToDo ──
+let todos = [];
+
+function loadTodos() {
+  try {
+    todos = JSON.parse(localStorage.getItem('mf-todos') || '[]');
+  } catch { todos = []; }
+  renderTodos();
+}
+
+function saveTodos() {
+  localStorage.setItem('mf-todos', JSON.stringify(todos));
+}
+
+function addTodo() {
+  const inp = document.getElementById('todo-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  todos.unshift({ id: Date.now(), text, done: false });
+  saveTodos();
+  renderTodos();
+  inp.value = '';
+  inp.focus();
+}
+
+function toggleTodo(id) {
+  const t = todos.find(x => x.id === id);
+  if (t) { t.done = !t.done; saveTodos(); renderTodos(); }
+}
+
+function deleteTodo(id) {
+  todos = todos.filter(x => x.id !== id);
+  saveTodos();
+  renderTodos();
+}
+
+function clearDoneTodos() {
+  const removed = todos.filter(x => x.done).length;
+  todos = todos.filter(x => !x.done);
+  saveTodos();
+  renderTodos();
+  if (removed) showToast(`🗑 ${removed} 件削除しました`);
+}
+
+function renderTodos() {
+  const container = document.getElementById('todo-items');
+  const total = todos.length;
+  const done = todos.filter(x => x.done).length;
+  document.getElementById('todo-count').textContent = `${total} 件 (完了 ${done})`;
+
+  const navTodo = document.getElementById('nav-todo');
+  const pending = todos.filter(x => !x.done).length;
+  if (pending > 0) navTodo.classList.add('has-dot'); else navTodo.classList.remove('has-dot');
+
+  if (!todos.length) {
+    container.innerHTML = `<div class="empty-state" style="padding:30px 0">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">タスクなし</div>
+      <div class="empty-sub">上のフォームから追加してください</div>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = todos.map(t => `
+    <div class="todo-item ${t.done ? 'done' : ''}" id="todo-${t.id}">
+      <button class="todo-check" onclick="toggleTodo(${t.id})">
+        <span class="todo-check-icon">✓</span>
+      </button>
+      <span class="todo-text" onclick="toggleTodo(${t.id})">${escHtml(t.text)}</span>
+      <button class="todo-delete" onclick="deleteTodo(${t.id})" title="削除">✕</button>
+    </div>
+  `).join('');
+}
+
+// ── Enter key for todo ──
+document.getElementById('todo-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTodo();
+});
+
+// ── Toast ──
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Helpers ──
+function escHtml(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// ── SW Registration ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ── Start ──
+loadSettings();
+init();
+</script>
+</body>
+</html>
