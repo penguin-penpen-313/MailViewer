@@ -9,7 +9,6 @@
   <meta name="apple-mobile-web-app-title" content="MailFocus">
   <link rel="manifest" href="manifest.json">
   <title>MailFocus</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -28,889 +27,266 @@
       --text: #e8e8f0;
       --text2: #9090a8;
       --text3: #5a5a78;
-      --font-display: 'Syne', sans-serif;
-      --font-mono: 'DM Mono', monospace;
-      --radius: 12px;
-      --radius-lg: 20px;
+      --font: 'Syne', sans-serif;
+      --mono: 'DM Mono', monospace;
+      --r: 12px;
+      --rl: 20px;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; }
 
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-display);
-      overflow: hidden;
+    /* ─ App Shell ─ */
+    #app { display: grid; grid-template-rows: auto 1fr auto; height: 100dvh; max-width: 520px; margin: 0 auto; }
+
+    /* ─ Login Screen ─ */
+    #login-screen {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 0; z-index: 500; padding: 40px 32px;
+      background-image: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(124,106,247,0.12) 0%, transparent 70%);
     }
-
-    /* ── Layout ── */
-    #app {
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      height: 100dvh;
-      max-width: 520px;
-      margin: 0 auto;
-      position: relative;
+    .login-logo { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, var(--accent2), #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; }
+    .login-tagline { font-size: 13px; color: var(--text3); font-family: var(--mono); margin-bottom: 48px; }
+    .login-card {
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: var(--rl); padding: 28px 24px; width: 100%; max-width: 360px;
+      display: flex; flex-direction: column; gap: 20px;
     }
-
-    /* ── Header ── */
-    header {
-      padding: 20px 20px 0;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    .login-title { font-size: 18px; font-weight: 700; }
+    .login-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+    .client-id-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+    .client-id-input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: var(--r); padding: 11px 14px; color: var(--text);
+      font-family: var(--mono); font-size: 12px; outline: none; transition: border-color 0.2s;
     }
-
-    .logo {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      background: linear-gradient(135deg, var(--accent2), #c4b5fd);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .client-id-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .client-id-input::placeholder { color: var(--text3); }
+    .google-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      background: white; border: none; border-radius: var(--r); padding: 13px;
+      font-family: var(--font); font-size: 15px; font-weight: 700; color: #1f1f1f;
+      cursor: pointer; transition: all 0.2s; width: 100%;
     }
+    .google-btn:hover { background: #f0f0f0; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transform: translateY(-1px); }
+    .google-btn:active { transform: scale(0.97); }
+    .google-btn svg { flex-shrink: 0; }
+    .login-hint { font-size: 11px; color: var(--text3); font-family: var(--mono); text-align: center; line-height: 1.6; }
+    .login-hint a { color: var(--accent2); }
 
-    .header-badges {
-      display: flex;
-      gap: 6px;
-      margin-left: auto;
-    }
+    /* ─ Header ─ */
+    header { padding: 20px 20px 0; display: flex; align-items: center; gap: 8px; }
+    .logo { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, var(--accent2), #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-badges { display: flex; gap: 6px; margin-left: auto; }
+    .badge { font-family: var(--mono); font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 500; }
+    .badge-unread { background: rgba(52,211,153,0.15); color: var(--unread); border: 1px solid rgba(52,211,153,0.25); }
+    .badge-star { background: rgba(245,158,11,0.15); color: var(--star); border: 1px solid rgba(245,158,11,0.25); }
+    .icon-btn { background: transparent; border: 1px solid var(--border2); border-radius: 8px; color: var(--text3); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; transition: all 0.2s; flex-shrink: 0; }
+    .icon-btn:hover { background: var(--surface2); color: var(--text); }
+    .refresh-btn { background: transparent; border: 1px solid var(--border2); color: var(--text2); border-radius: 8px; padding: 6px 12px; font-family: var(--font); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px; }
+    .refresh-btn:hover { background: var(--surface2); }
+    .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
 
-    .badge {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      padding: 3px 8px;
-      border-radius: 20px;
-      font-weight: 500;
-    }
+    /* ─ Tabs ─ */
+    .tabs { display: flex; gap: 4px; padding: 16px 20px 12px; }
+    .tab { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text3); font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .tab.active { background: var(--surface2); border-color: var(--accent); color: var(--accent2); box-shadow: 0 0 16px var(--accent-glow); }
+    .tab:hover:not(.active) { background: var(--surface); color: var(--text2); }
 
-    .badge-unread {
-      background: rgba(52,211,153,0.15);
-      color: var(--unread);
-      border: 1px solid rgba(52,211,153,0.25);
-    }
-
-    .badge-star {
-      background: rgba(245,158,11,0.15);
-      color: var(--star);
-      border: 1px solid rgba(245,158,11,0.25);
-    }
-
-    /* ── Tab Bar ── */
-    .tabs {
-      display: flex;
-      gap: 4px;
-      padding: 16px 20px 12px;
-    }
-
-    .tab {
-      flex: 1;
-      padding: 8px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text3);
-      font-family: var(--font-display);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-    }
-
-    .tab.active {
-      background: var(--surface2);
-      border-color: var(--accent);
-      color: var(--accent2);
-      box-shadow: 0 0 16px var(--accent-glow);
-    }
-
-    .tab:hover:not(.active) {
-      background: var(--surface);
-      color: var(--text2);
-    }
-
-    /* ── Scroll Area ── */
-    .scroll-area {
-      overflow-y: auto;
-      padding: 0 20px;
-      -webkit-overflow-scrolling: touch;
-    }
-
+    /* ─ Scroll ─ */
+    .scroll-area { overflow-y: auto; padding: 0 20px; -webkit-overflow-scrolling: touch; }
     .scroll-area::-webkit-scrollbar { width: 3px; }
-    .scroll-area::-webkit-scrollbar-track { background: transparent; }
     .scroll-area::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
 
-    /* ── Mail List ── */
+    /* ─ Mail List ─ */
     .mail-list { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; }
-
-    .mail-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      cursor: pointer;
-      transition: all 0.2s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .mail-card::before {
-      content: '';
-      position: absolute;
-      left: 0; top: 0; bottom: 0;
-      width: 3px;
-      background: var(--accent);
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
+    .mail-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 14px 16px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
+    .mail-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; opacity: 0; transition: opacity 0.2s; }
     .mail-card.unread::before { opacity: 1; background: var(--unread); }
     .mail-card.starred::before { opacity: 1; background: var(--star); }
-
     .mail-card:active { transform: scale(0.98); }
-
-    .mail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 5px; }
-
-    .mail-from {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
+    .mail-header { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+    .mail-from { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .mail-card:not(.unread) .mail-from { font-weight: 400; color: var(--text2); }
-
-    .mail-date {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--text3);
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .mail-subject {
-      font-size: 13px;
-      color: var(--text2);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-bottom: 4px;
-    }
-
+    .mail-date { font-family: var(--mono); font-size: 10px; color: var(--text3); white-space: nowrap; flex-shrink: 0; }
+    .mail-subject { font-size: 13px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
     .mail-card.unread .mail-subject { color: var(--text); font-weight: 600; }
-
-    .mail-snippet {
-      font-size: 12px;
-      color: var(--text3);
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-    }
-
-    .mail-icons {
-      display: flex;
-      gap: 5px;
-      margin-top: 8px;
-    }
-
-    .icon-tag {
-      font-size: 10px;
-      font-family: var(--font-mono);
-      padding: 2px 7px;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      gap: 3px;
-    }
-
+    .mail-snippet { font-size: 12px; color: var(--text3); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+    .mail-icons { display: flex; gap: 5px; margin-top: 8px; }
+    .icon-tag { font-size: 10px; font-family: var(--mono); padding: 2px 7px; border-radius: 20px; display: flex; align-items: center; gap: 3px; }
     .tag-unread { background: rgba(52,211,153,0.1); color: var(--unread); }
     .tag-starred { background: rgba(245,158,11,0.1); color: var(--star); }
 
-    /* ── Mail Detail Overlay ── */
-    .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.85);
-      z-index: 100;
-      display: flex;
-      align-items: flex-end;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-      backdrop-filter: blur(4px);
-    }
-
-    .overlay.open {
-      opacity: 1;
-      pointer-events: all;
-    }
-
-    .detail-sheet {
-      background: var(--surface);
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      border-top: 1px solid var(--border2);
-      width: 100%;
-      max-width: 520px;
-      margin: 0 auto;
-      max-height: 88dvh;
-      display: flex;
-      flex-direction: column;
-      transform: translateY(100%);
-      transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
-    }
-
+    /* ─ Detail Overlay ─ */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.3s; backdrop-filter: blur(4px); }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .detail-sheet { background: var(--surface); border-radius: var(--rl) var(--rl) 0 0; border-top: 1px solid var(--border2); width: 100%; max-width: 520px; margin: 0 auto; max-height: 90dvh; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32,0.72,0,1); }
     .overlay.open .detail-sheet { transform: translateY(0); }
-
-    .sheet-handle {
-      width: 36px; height: 4px;
-      background: var(--surface3);
-      border-radius: 2px;
-      margin: 12px auto 0;
-      flex-shrink: 0;
-    }
-
-    .sheet-header {
-      padding: 16px 20px 12px;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-
-    .sheet-subject {
-      font-size: 17px;
-      font-weight: 700;
-      line-height: 1.3;
-      margin-bottom: 8px;
-    }
-
-    .sheet-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-
-    .sheet-meta-row {
-      display: flex;
-      gap: 8px;
-      font-size: 12px;
-      font-family: var(--font-mono);
-    }
-
+    .sheet-handle { width: 36px; height: 4px; background: var(--surface3); border-radius: 2px; margin: 12px auto 0; flex-shrink: 0; }
+    .sheet-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .sheet-subject { font-size: 17px; font-weight: 700; line-height: 1.3; margin-bottom: 8px; }
+    .sheet-meta { display: flex; flex-direction: column; gap: 3px; }
+    .sheet-meta-row { display: flex; gap: 8px; font-size: 12px; font-family: var(--mono); }
     .meta-label { color: var(--text3); min-width: 30px; }
-    .meta-value { color: var(--text2); }
-
-    .sheet-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px 20px;
-      font-size: 14px;
-      line-height: 1.7;
-      color: var(--text2);
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
+    .meta-value { color: var(--text2); overflow: hidden; text-overflow: ellipsis; }
+    .sheet-body { flex: 1; overflow-y: auto; padding: 16px 20px; font-size: 14px; line-height: 1.7; color: var(--text2); white-space: pre-wrap; word-break: break-word; }
     .sheet-body::-webkit-scrollbar { width: 3px; }
     .sheet-body::-webkit-scrollbar-thumb { background: var(--surface3); }
 
-    /* ── Action Buttons ── */
-    .sheet-actions {
-      padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
-      border-top: 1px solid var(--border);
-      display: flex;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    .action-btn {
-      flex: 1;
-      padding: 13px 8px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border2);
-      background: var(--surface2);
-      color: var(--text);
-      font-family: var(--font-display);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-    }
-
+    /* ─ Action Buttons ─ */
+    .sheet-actions { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+    .action-btn { flex: 1; padding: 12px 6px; border-radius: var(--r); border: 1px solid var(--border2); background: var(--surface2); color: var(--text); font-family: var(--font); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px; }
     .action-btn:active { transform: scale(0.96); }
-
     .btn-reply { background: rgba(124,106,247,0.15); border-color: var(--accent); color: var(--accent2); }
-    .btn-reply:hover { background: rgba(124,106,247,0.25); box-shadow: 0 0 16px var(--accent-glow); }
+    .btn-reply:hover { background: rgba(124,106,247,0.25); }
     .btn-read { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.3); color: var(--unread); }
-    .btn-read:hover { background: rgba(52,211,153,0.2); }
     .btn-unread { background: var(--surface2); }
-    .btn-unread:hover { background: var(--surface3); }
 
-    /* ── Loading Skeleton ── */
-    .skeleton {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-    }
+    /* ─ Reply Panel ─ */
+    .reply-panel { border-top: 1px solid var(--border2); background: var(--surface2); flex-shrink: 0; max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.32,0.72,0,1); }
+    .reply-panel.open { max-height: 480px; }
+    .reply-inner { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .reply-to-row { display: flex; align-items: center; gap: 8px; font-size: 12px; font-family: var(--mono); color: var(--text3); }
+    .reply-to-addr { color: var(--accent2); background: rgba(124,106,247,0.1); border-radius: 6px; padding: 2px 8px; font-size: 11px; }
+    .draft-indicator { font-family: var(--mono); font-size: 10px; color: var(--star); display: none; align-items: center; gap: 4px; margin-left: auto; }
+    .draft-indicator.visible { display: flex; }
+    .reply-quote { background: var(--bg); border-left: 3px solid var(--surface3); border-radius: 0 8px 8px 0; padding: 8px 12px; font-size: 12px; color: var(--text3); line-height: 1.6; max-height: 70px; overflow: hidden; font-family: var(--mono); white-space: pre-wrap; word-break: break-word; }
+    .quote-label { font-size: 10px; color: var(--text3); font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+    .reply-textarea { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r); padding: 12px 14px; color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.6; resize: none; outline: none; height: 110px; transition: border-color 0.2s; }
+    .reply-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .reply-textarea::placeholder { color: var(--text3); }
+    .reply-footer { display: flex; justify-content: flex-end; gap: 8px; }
+    .reply-cancel-btn { background: transparent; border: 1px solid var(--border2); border-radius: var(--r); color: var(--text2); font-family: var(--font); font-size: 13px; font-weight: 600; padding: 10px 18px; cursor: pointer; transition: all 0.2s; }
+    .reply-cancel-btn:hover { background: var(--surface3); }
+    .reply-send-btn { background: var(--accent); border: none; border-radius: var(--r); color: white; font-family: var(--font); font-size: 13px; font-weight: 700; padding: 10px 22px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+    .reply-send-btn:hover { background: var(--accent2); box-shadow: 0 0 16px var(--accent-glow); }
+    .reply-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .spinner { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
 
-    .skel-line {
-      height: 12px;
-      background: linear-gradient(90deg, var(--surface2) 0%, var(--surface3) 50%, var(--surface2) 100%);
-      background-size: 200% 100%;
-      border-radius: 6px;
-      animation: shimmer 1.5s infinite;
-      margin-bottom: 8px;
-    }
-
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
+    /* ─ Skeleton ─ */
+    .skeleton { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 14px 16px; }
+    .skel-line { height: 12px; background: linear-gradient(90deg, var(--surface2) 0%, var(--surface3) 50%, var(--surface2) 100%); background-size: 200% 100%; border-radius: 6px; animation: shimmer 1.5s infinite; margin-bottom: 8px; }
     .skel-line:last-child { margin-bottom: 0; width: 60%; }
-
-    /* ── Empty / Error State ── */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text3);
-    }
-
-    .empty-icon { font-size: 48px; margin-bottom: 12px; }
-    .empty-title { font-size: 16px; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
-    .empty-sub { font-size: 13px; line-height: 1.5; }
-
-    /* ── Refresh Button ── */
-    .refresh-btn {
-      background: transparent;
-      border: 1px solid var(--border2);
-      color: var(--text2);
-      border-radius: 8px;
-      padding: 6px 14px;
-      font-family: var(--font-display);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-left: auto;
-    }
-
-    .refresh-btn:hover { background: var(--surface2); color: var(--text); }
-    .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
-
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── ToDo Section ── */
+    /* ─ Empty / Error ─ */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-title { font-size: 16px; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
+    .empty-sub { font-size: 13px; line-height: 1.6; }
+
+    /* ─ ToDo ─ */
     .todo-section { padding-bottom: 16px; }
-
-    .todo-input-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .todo-input {
-      flex: 1;
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-radius: var(--radius);
-      padding: 11px 14px;
-      color: var(--text);
-      font-family: var(--font-display);
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
+    .section-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; margin-top: 4px; }
+    .todo-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .todo-input { flex: 1; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r); padding: 11px 14px; color: var(--text); font-family: var(--font); font-size: 14px; outline: none; transition: border-color 0.2s; }
     .todo-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
     .todo-input::placeholder { color: var(--text3); }
-
-    .todo-add-btn {
-      background: var(--accent);
-      border: none;
-      border-radius: var(--radius);
-      color: white;
-      width: 44px;
-      font-size: 22px;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
+    .todo-add-btn { background: var(--accent); border: none; border-radius: var(--r); color: white; width: 44px; font-size: 22px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .todo-add-btn:hover { background: var(--accent2); box-shadow: 0 0 16px var(--accent-glow); }
-    .todo-add-btn:active { transform: scale(0.93); }
-
     .todo-items { display: flex; flex-direction: column; gap: 7px; }
-
-    .todo-item {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px 14px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      transition: all 0.2s;
-      animation: fadeIn 0.25s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .todo-item.done {
-      opacity: 0.5;
-      border-color: var(--border);
-    }
-
-    .todo-check {
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      border: 2px solid var(--border2);
-      cursor: pointer;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-      background: transparent;
-    }
-
+    .todo-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 12px 14px; display: flex; align-items: center; gap: 10px; animation: fadeIn 0.25s ease; }
+    .todo-item.done { opacity: 0.5; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .todo-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border2); cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: transparent; }
     .todo-check:hover { border-color: var(--accent); }
     .todo-item.done .todo-check { background: var(--accent); border-color: var(--accent); }
     .todo-check-icon { color: white; font-size: 11px; display: none; }
     .todo-item.done .todo-check-icon { display: block; }
-
-    .todo-text {
-      flex: 1;
-      font-size: 14px;
-      color: var(--text);
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .todo-item.done .todo-text {
-      text-decoration: line-through;
-      color: var(--text3);
-    }
-
-    .todo-delete {
-      background: transparent;
-      border: none;
-      color: var(--text3);
-      cursor: pointer;
-      font-size: 16px;
-      padding: 4px;
-      border-radius: 6px;
-      transition: all 0.2s;
-      line-height: 1;
-    }
-
+    .todo-text { flex: 1; font-size: 14px; color: var(--text); cursor: pointer; user-select: none; }
+    .todo-item.done .todo-text { text-decoration: line-through; color: var(--text3); }
+    .todo-delete { background: transparent; border: none; color: var(--text3); cursor: pointer; font-size: 16px; padding: 4px; border-radius: 6px; transition: all 0.2s; }
     .todo-delete:hover { color: var(--danger); background: rgba(248,113,113,0.1); }
-
-    .todo-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 12px;
-      font-size: 12px;
-      color: var(--text3);
-      font-family: var(--font-mono);
-    }
-
-    .todo-clear {
-      background: transparent;
-      border: none;
-      color: var(--text3);
-      cursor: pointer;
-      font-size: 12px;
-      font-family: var(--font-mono);
-      transition: color 0.2s;
-    }
-
+    .todo-footer { display: flex; justify-content: space-between; margin-top: 12px; font-size: 12px; color: var(--text3); font-family: var(--mono); }
+    .todo-clear { background: transparent; border: none; color: var(--text3); cursor: pointer; font-size: 12px; font-family: var(--mono); transition: color 0.2s; }
     .todo-clear:hover { color: var(--danger); }
 
-    /* ── Bottom Nav ── */
-    nav {
-      display: flex;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-    }
+    /* ─ Settings Modal ─ */
+    .settings-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.3s; backdrop-filter: blur(4px); }
+    .settings-modal.open { opacity: 1; pointer-events: all; }
+    .settings-sheet { background: var(--surface); border-radius: var(--rl) var(--rl) 0 0; border-top: 1px solid var(--border2); width: 100%; max-width: 520px; margin: 0 auto; padding-bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32,0.72,0,1); }
+    .settings-modal.open .settings-sheet { transform: translateY(0); }
+    .settings-handle { width: 36px; height: 4px; background: var(--surface3); border-radius: 2px; margin: 12px auto 0; }
+    .settings-title { font-size: 16px; font-weight: 700; padding: 16px 20px 12px; display: flex; justify-content: space-between; align-items: center; }
+    .settings-close { background: transparent; border: none; color: var(--text3); font-size: 20px; cursor: pointer; padding: 4px; transition: color 0.2s; }
+    .settings-close:hover { color: var(--text); }
+    .settings-body { padding: 0 20px 8px; display: flex; flex-direction: column; gap: 14px; }
+    .settings-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; }
+    .sig-textarea { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--r); padding: 12px 14px; color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.6; resize: none; outline: none; height: 90px; width: 100%; transition: border-color 0.2s; }
+    .sig-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .settings-save-btn { background: var(--accent); border: none; border-radius: var(--r); color: white; font-family: var(--font); font-size: 14px; font-weight: 700; padding: 12px; cursor: pointer; transition: all 0.2s; width: 100%; }
+    .settings-save-btn:hover { background: var(--accent2); }
+    .logout-btn { background: transparent; border: 1px solid rgba(248,113,113,0.3); border-radius: var(--r); color: var(--danger); font-family: var(--font); font-size: 13px; font-weight: 600; padding: 11px; cursor: pointer; transition: all 0.2s; width: 100%; }
+    .logout-btn:hover { background: rgba(248,113,113,0.1); }
 
-    .nav-btn {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      padding: 8px;
-      background: transparent;
-      border: none;
-      color: var(--text3);
-      font-family: var(--font-display);
-      font-size: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      letter-spacing: 0.5px;
-      position: relative;
-    }
-
+    /* ─ Bottom Nav ─ */
+    nav { display: flex; background: var(--surface); border-top: 1px solid var(--border); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); }
+    .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px; background: transparent; border: none; color: var(--text3); font-family: var(--font); font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; letter-spacing: 0.5px; position: relative; }
     .nav-btn.active { color: var(--accent2); }
     .nav-btn .nav-icon { font-size: 20px; transition: transform 0.2s; }
     .nav-btn:active .nav-icon { transform: scale(0.88); }
-
-    .nav-dot {
-      position: absolute;
-      top: 6px;
-      right: calc(50% - 16px);
-      width: 6px; height: 6px;
-      background: var(--unread);
-      border-radius: 50%;
-      display: none;
-    }
-
+    .nav-dot { position: absolute; top: 6px; right: calc(50% - 16px); width: 6px; height: 6px; background: var(--unread); border-radius: 50%; display: none; }
     .nav-btn.has-dot .nav-dot { display: block; }
 
-    /* ── Toast ── */
-    .toast {
-      position: fixed;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: var(--surface2);
-      border: 1px solid var(--border2);
-      border-radius: 100px;
-      padding: 10px 20px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      opacity: 0;
-      transition: all 0.3s;
-      pointer-events: none;
-      white-space: nowrap;
-      z-index: 200;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    /* ── Reply Panel ── */
-    .reply-panel {
-      border-top: 1px solid var(--border2);
-      background: var(--surface2);
-      flex-shrink: 0;
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.35s cubic-bezier(0.32,0.72,0,1);
-    }
-
-    .reply-panel.open { max-height: 320px; }
-
-    .reply-inner { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
-
-    .reply-to-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      font-family: var(--font-mono);
-      color: var(--text3);
-    }
-
-    .reply-to-addr {
-      color: var(--accent2);
-      background: rgba(124,106,247,0.1);
-      border-radius: 6px;
-      padding: 2px 8px;
-      font-size: 11px;
-    }
-
-    .reply-textarea {
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-radius: var(--radius);
-      padding: 12px 14px;
-      color: var(--text);
-      font-family: var(--font-display);
-      font-size: 14px;
-      line-height: 1.6;
-      resize: none;
-      outline: none;
-      height: 110px;
-      transition: border-color 0.2s;
-    }
-
-    .reply-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-    .reply-textarea::placeholder { color: var(--text3); }
-
-    .reply-footer { display: flex; justify-content: flex-end; gap: 8px; }
-
-    .reply-cancel-btn {
-      background: transparent;
-      border: 1px solid var(--border2);
-      border-radius: var(--radius);
-      color: var(--text2);
-      font-family: var(--font-display);
-      font-size: 13px;
-      font-weight: 600;
-      padding: 10px 18px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .reply-cancel-btn:hover { background: var(--surface3); }
-
-    .reply-send-btn {
-      background: var(--accent);
-      border: none;
-      border-radius: var(--radius);
-      color: white;
-      font-family: var(--font-display);
-      font-size: 13px;
-      font-weight: 700;
-      padding: 10px 22px;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .reply-send-btn:hover { background: var(--accent2); box-shadow: 0 0 16px var(--accent-glow); }
-    .reply-send-btn:active { transform: scale(0.95); }
-    .reply-send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-    .sending-spinner {
-      width: 13px; height: 13px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-
-    /* ── Signature Settings Modal ── */
-    .settings-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.85);
-      z-index: 200;
-      display: flex;
-      align-items: flex-end;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-      backdrop-filter: blur(4px);
-    }
-    .settings-modal.open { opacity: 1; pointer-events: all; }
-
-    .settings-sheet {
-      background: var(--surface);
-      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-      border-top: 1px solid var(--border2);
-      width: 100%;
-      max-width: 520px;
-      margin: 0 auto;
-      padding: 0 0 calc(20px + env(safe-area-inset-bottom));
-      transform: translateY(100%);
-      transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
-    }
-    .settings-modal.open .settings-sheet { transform: translateY(0); }
-
-    .settings-handle {
-      width: 36px; height: 4px;
-      background: var(--surface3);
-      border-radius: 2px;
-      margin: 12px auto 0;
-    }
-
-    .settings-title {
-      font-size: 16px;
-      font-weight: 700;
-      padding: 16px 20px 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .settings-close {
-      background: transparent;
-      border: none;
-      color: var(--text3);
-      font-size: 20px;
-      cursor: pointer;
-      padding: 4px;
-      transition: color 0.2s;
-    }
-    .settings-close:hover { color: var(--text); }
-
-    .settings-body { padding: 0 20px 16px; display: flex; flex-direction: column; gap: 12px; }
-
-    .settings-label {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--text3);
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-
-    .sig-textarea {
-      background: var(--surface2);
-      border: 1px solid var(--border2);
-      border-radius: var(--radius);
-      padding: 12px 14px;
-      color: var(--text);
-      font-family: var(--font-display);
-      font-size: 14px;
-      line-height: 1.6;
-      resize: none;
-      outline: none;
-      height: 90px;
-      width: 100%;
-      transition: border-color 0.2s;
-    }
-    .sig-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-    .sig-textarea::placeholder { color: var(--text3); }
-
-    .settings-save-btn {
-      background: var(--accent);
-      border: none;
-      border-radius: var(--radius);
-      color: white;
-      font-family: var(--font-display);
-      font-size: 14px;
-      font-weight: 700;
-      padding: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-      width: 100%;
-    }
-    .settings-save-btn:hover { background: var(--accent2); box-shadow: 0 0 16px var(--accent-glow); }
-
-    /* ── Draft indicator ── */
-    .draft-indicator {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--star);
-      display: none;
-      align-items: center;
-      gap: 4px;
-    }
-    .draft-indicator.visible { display: flex; }
-
-    /* ── Settings gear button ── */
-    .settings-gear {
-      background: transparent;
-      border: 1px solid var(--border2);
-      border-radius: 8px;
-      color: var(--text3);
-      width: 32px; height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 16px;
-      transition: all 0.2s;
-      flex-shrink: 0;
-    }
-    .settings-gear:hover { background: var(--surface2); color: var(--text); }
-
-    /* ── Reply panel extended height for quote ── */
-    .reply-panel.open { max-height: 520px; }
-
-    .reply-quote {
-      background: var(--bg);
-      border-left: 3px solid var(--surface3);
-      border-radius: 0 8px 8px 0;
-      padding: 10px 12px;
-      font-size: 12px;
-      color: var(--text3);
-      line-height: 1.6;
-      max-height: 80px;
-      overflow: hidden;
-      font-family: var(--font-mono);
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .quote-label {
-      font-size: 10px;
-      color: var(--text3);
-      font-family: var(--font-mono);
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-
-    /* ── Scrollable wrapper fix ── */
+    /* ─ View ─ */
     .view { display: none; flex-direction: column; height: 100%; }
     .view.active { display: flex; }
 
-    .section-label {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--text3);
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-      margin-top: 4px;
-    }
+    /* ─ Toast ─ */
+    .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface2); border: 1px solid var(--border2); border-radius: 100px; padding: 10px 20px; font-size: 13px; font-weight: 600; color: var(--text); opacity: 0; transition: all 0.3s; pointer-events: none; white-space: nowrap; z-index: 300; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
-<div id="app">
-  <!-- Header -->
+
+<!-- ─ Login Screen ─ -->
+<div id="login-screen">
+  <div class="login-logo">MailFocus</div>
+  <div class="login-tagline">gmail viewer + todo · powered by google</div>
+  <div class="login-card">
+    <div class="login-title">Googleでサインイン</div>
+    <div class="login-desc">Gmail APIを使って未読メール・スターメールを表示します。認証情報はデバイス内にのみ保存されます。</div>
+    <div>
+      <div class="client-id-label">Google Client ID</div>
+      <input type="text" class="client-id-input" id="client-id-input"
+        placeholder="xxxxxxxx.apps.googleusercontent.com"
+        value="">
+    </div>
+    <button class="google-btn" onclick="startLogin()">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-3.59-13.46-8.83l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+      Googleアカウントでログイン
+    </button>
+    <div class="login-hint">
+      Client IDの取得方法は <a href="#" onclick="showSetupGuide()">セットアップガイド</a> をご覧ください
+    </div>
+  </div>
+</div>
+
+<!-- ─ Main App ─ -->
+<div id="app" style="display:none">
   <header>
     <div class="logo">MailFocus</div>
     <div class="header-badges">
       <span class="badge badge-unread" id="unread-count">…</span>
       <span class="badge badge-star" id="star-count">…</span>
     </div>
-    <button class="settings-gear" onclick="openSettings()" title="署名設定">⚙️</button>
+    <button class="icon-btn" onclick="openSettings()" title="設定">⚙️</button>
     <button class="refresh-btn" id="refresh-btn" onclick="loadEmails()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
     </button>
   </header>
 
-  <!-- Tabs -->
   <div class="tabs" id="tabs-bar">
-    <button class="tab active" onclick="switchMailTab('unread')" id="tab-unread">
-      <span>📬</span> 未読
-    </button>
-    <button class="tab" onclick="switchMailTab('starred')" id="tab-starred">
-      <span>⭐</span> スター
-    </button>
+    <button class="tab active" onclick="switchMailTab('unread')" id="tab-unread"><span>📬</span> 未読</button>
+    <button class="tab" onclick="switchMailTab('starred')" id="tab-starred"><span>⭐</span> スター</button>
   </div>
 
-  <!-- Main content area (swapped by nav) -->
   <div class="scroll-area" id="main-scroll">
-    <!-- Mail View -->
     <div class="view active" id="view-mail">
       <div id="mail-list-unread" class="mail-list"></div>
       <div id="mail-list-starred" class="mail-list" style="display:none"></div>
     </div>
-
-    <!-- ToDo View -->
     <div class="view" id="view-todo">
       <div class="todo-section">
         <div class="section-label">タスク</div>
@@ -927,24 +303,19 @@
     </div>
   </div>
 
-  <!-- Bottom Nav -->
   <nav>
     <button class="nav-btn active has-dot" id="nav-mail" onclick="switchView('mail')">
-      <div class="nav-icon">📬</div>
-      <span>メール</span>
-      <div class="nav-dot"></div>
+      <div class="nav-icon">📬</div><span>メール</span><div class="nav-dot"></div>
     </button>
     <button class="nav-btn" id="nav-todo" onclick="switchView('todo')">
-      <div class="nav-icon">✅</div>
-      <span>ToDo</span>
-      <div class="nav-dot"></div>
+      <div class="nav-icon">✅</div><span>ToDo</span><div class="nav-dot"></div>
     </button>
   </nav>
 </div>
 
-<!-- Mail Detail Overlay -->
+<!-- ─ Detail Overlay ─ -->
 <div class="overlay" id="detail-overlay" onclick="handleOverlayClick(event)">
-  <div class="detail-sheet" id="detail-sheet">
+  <div class="detail-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <div class="sheet-subject" id="detail-subject">—</div>
@@ -954,16 +325,13 @@
         <div class="sheet-meta-row"><span class="meta-label">Date</span><span class="meta-value" id="detail-date">—</span></div>
       </div>
     </div>
-    <div class="sheet-body" id="detail-body">読み込み中…</div>
-
-    <!-- Reply Panel (slides in above actions) -->
+    <div class="sheet-body" id="detail-body"></div>
     <div class="reply-panel" id="reply-panel">
       <div class="reply-inner">
         <div class="reply-to-row">
           宛先: <span class="reply-to-addr" id="reply-to-addr">—</span>
-          <span class="draft-indicator" id="draft-indicator">💾 下書き保存済み</span>
+          <span class="draft-indicator" id="draft-indicator">💾 下書き</span>
         </div>
-        <!-- Original mail quote -->
         <div id="reply-quote-block" style="display:none">
           <div class="quote-label">引用元</div>
           <div class="reply-quote" id="reply-quote-text"></div>
@@ -973,12 +341,11 @@
           <button class="reply-cancel-btn" onclick="closeReply()">キャンセル</button>
           <button class="reply-send-btn" id="reply-send-btn" onclick="sendReply()">
             <span id="reply-send-label">送信 ↗</span>
-            <span class="sending-spinner" id="reply-spinner" style="display:none"></span>
+            <span class="spinner" id="reply-spinner"></span>
           </button>
         </div>
       </div>
     </div>
-
     <div class="sheet-actions">
       <button class="action-btn btn-reply" onclick="toggleReply()">↩ 返信</button>
       <button class="action-btn btn-read" onclick="markRead()">✓ 既読</button>
@@ -987,41 +354,166 @@
   </div>
 </div>
 
-<!-- Settings Modal -->
+<!-- ─ Settings Modal ─ -->
 <div class="settings-modal" id="settings-modal" onclick="handleSettingsClick(event)">
   <div class="settings-sheet">
     <div class="settings-handle"></div>
-    <div class="settings-title">
-      ⚙️ 設定
-      <button class="settings-close" onclick="closeSettings()">✕</button>
-    </div>
+    <div class="settings-title">⚙️ 設定<button class="settings-close" onclick="closeSettings()">✕</button></div>
     <div class="settings-body">
       <div>
         <div class="settings-label">署名</div>
         <textarea class="sig-textarea" id="sig-textarea" placeholder="例：よろしくお願いします。&#10;山田 太郎"></textarea>
       </div>
       <button class="settings-save-btn" onclick="saveSettings()">保存する</button>
+      <button class="logout-btn" onclick="logout()">🚪 ログアウト</button>
     </div>
   </div>
 </div>
 
-<!-- Toast -->
+<!-- ─ Setup Guide Modal ─ -->
+<div class="settings-modal" id="guide-modal" onclick="if(event.target===this)closeGuide()">
+  <div class="settings-sheet" style="max-height:85dvh;overflow-y:auto">
+    <div class="settings-handle"></div>
+    <div class="settings-title">📋 セットアップガイド<button class="settings-close" onclick="closeGuide()">✕</button></div>
+    <div class="settings-body" style="gap:10px;font-size:13px;line-height:1.8;color:var(--text2)">
+      <p style="color:var(--text);font-weight:700">Google Cloud ConsoleでClient IDを取得する手順</p>
+      <ol style="padding-left:18px;display:flex;flex-direction:column;gap:8px">
+        <li><a href="https://console.cloud.google.com/" target="_blank" style="color:var(--accent2)">Google Cloud Console</a> を開く</li>
+        <li>新しいプロジェクトを作成（例: MailFocus）</li>
+        <li>左メニュー → <b>APIとサービス</b> → <b>ライブラリ</b> → 「Gmail API」を検索して有効化</li>
+        <li><b>認証情報</b> → <b>認証情報を作成</b> → <b>OAuthクライアントID</b></li>
+        <li>アプリの種類: <b>ウェブアプリケーション</b></li>
+        <li>承認済みのJavaScript生成元にこのアプリのURLを追加<br><span style="font-family:var(--mono);font-size:11px;color:var(--accent2)" id="guide-origin"></span></li>
+        <li>作成されたClient IDをコピーしてログイン画面に貼り付ける</li>
+      </ol>
+      <p style="background:var(--surface2);border-radius:8px;padding:10px;font-size:12px;color:var(--text3)">
+        ⚠️ 初回はGoogleの確認画面が表示される場合があります。「詳細」→「安全でないページに移動」をクリックして続行してください（自分のアプリなので安全です）。
+      </p>
+      <button class="settings-save-btn" onclick="closeGuide()">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
-// ── State ──
-let emails = { unread: [], starred: [] };
-let currentMail = null;
-let currentMailTab = 'unread';
-let ANTHROPIC_KEY = '';
+// ── Google OAuth2 / Gmail API ──
+const SCOPES = 'https://www.googleapis.com/auth/gmail.modify';
+const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest';
 
-// ── Init ──
-async function init() {
+let gapiReady = false;
+let tokenClient = null;
+let accessToken = null;
+let currentMail = null;
+let emails = { unread: [], starred: [] };
+let signature = '';
+let draftTimer = null;
+
+// ── Boot ──
+window.onload = async () => {
+  loadSettings();
   loadTodos();
-  await loadEmails();
+
+  // Check saved session
+  const savedToken = sessionStorage.getItem('mf-token');
+  const savedClientId = localStorage.getItem('mf-client-id');
+  if (savedToken && savedClientId) {
+    document.getElementById('client-id-input').value = savedClientId;
+    accessToken = savedToken;
+    showApp();
+    loadEmails();
+  }
+
+  // Load GAPI
+  await loadGapi();
+};
+
+function loadGapi() {
+  return new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src = 'https://apis.google.com/js/api.js';
+    s.onload = () => gapi.load('client', async () => {
+      gapiReady = true;
+      resolve();
+    });
+    document.head.appendChild(s);
+  });
 }
 
-// ── Email Loading via Claude API ──
+function loadGis() {
+  return new Promise(resolve => {
+    if (window.google?.accounts) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = resolve;
+    document.head.appendChild(s);
+  });
+}
+
+// ── Login ──
+async function startLogin() {
+  const clientId = document.getElementById('client-id-input').value.trim();
+  if (!clientId) { showToast('⚠ Client IDを入力してください'); return; }
+  localStorage.setItem('mf-client-id', clientId);
+
+  await loadGis();
+
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { showToast('❌ 認証エラー: ' + resp.error); return; }
+      accessToken = resp.access_token;
+      sessionStorage.setItem('mf-token', accessToken);
+
+      await gapi.client.init({ discoveryDocs: [DISCOVERY_DOC] });
+      gapi.client.setToken({ access_token: accessToken });
+
+      showApp();
+      loadEmails();
+    }
+  });
+
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = '';
+}
+
+function logout() {
+  sessionStorage.removeItem('mf-token');
+  accessToken = null;
+  emails = { unread: [], starred: [] };
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = '';
+  closeSettings();
+  showToast('👋 ログアウトしました');
+}
+
+// ── Gmail API helpers ──
+async function gmailGet(path, params = {}) {
+  const url = new URL(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (r.status === 401) { logout(); throw new Error('認証期限切れ。再ログインしてください。'); }
+  if (!r.ok) throw new Error(`Gmail API error ${r.status}`);
+  return r.json();
+}
+
+async function gmailPost(path, body) {
+  const r = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (r.status === 401) { logout(); throw new Error('認証期限切れ。再ログインしてください。'); }
+  if (!r.ok) throw new Error(`Gmail API error ${r.status}`);
+  return r.json();
+}
+
+// ── Load Emails ──
 async function loadEmails() {
   const btn = document.getElementById('refresh-btn');
   btn.classList.add('spinning');
@@ -1029,12 +521,18 @@ async function loadEmails() {
   setListLoading('starred');
 
   try {
-    const [unreadRes, starredRes] = await Promise.all([
-      fetchMailsFromClaude('label:unread', 20),
-      fetchMailsFromClaude('label:starred', 20)
+    const [unreadData, starredData] = await Promise.all([
+      gmailGet('messages', { q: 'label:unread', maxResults: 25 }),
+      gmailGet('messages', { q: 'label:starred', maxResults: 25 })
     ]);
-    emails.unread = unreadRes;
-    emails.starred = starredRes;
+
+    const [unread, starred] = await Promise.all([
+      fetchMessageDetails(unreadData.messages || []),
+      fetchMessageDetails(starredData.messages || [])
+    ]);
+
+    emails.unread = unread;
+    emails.starred = starred;
     renderMailList('unread');
     renderMailList('starred');
     updateBadges();
@@ -1046,60 +544,79 @@ async function loadEmails() {
   }
 }
 
-async function fetchMailsFromClaude(query, maxResults) {
-  const prompt = `Use the Gmail MCP tool to search emails with query "${query}", fetch up to ${maxResults} results.
-For each email return a JSON array with objects having these fields:
-- id (string)
-- threadId (string)
-- from (string, just name or email)
-- to (string)
-- subject (string)
-- date (string, formatted as YYYY/MM/DD HH:mm)
-- snippet (string, first 100 chars of body)
-- body (string, plain text body up to 500 chars)
-- isUnread (boolean)
-- isStarred (boolean)
+async function fetchMessageDetails(list) {
+  if (!list.length) return [];
+  const results = await Promise.all(
+    list.slice(0, 20).map(m =>
+      gmailGet(`messages/${m.id}`, { format: 'full' }).catch(() => null)
+    )
+  );
+  return results.filter(Boolean).map(parseMessage);
+}
 
-Reply ONLY with the raw JSON array, no markdown, no explanation.`;
+function parseMessage(msg) {
+  const h = (name) => {
+    const found = (msg.payload?.headers || []).find(h => h.name.toLowerCase() === name.toLowerCase());
+    return found?.value || '';
+  };
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      system: 'You are a helpful assistant that retrieves Gmail data using MCP tools. Always return valid JSON arrays only.',
-      messages: [{ role: 'user', content: prompt }],
-      mcp_servers: [{ type: 'url', url: 'https://gmail.mcp.claude.com/mcp', name: 'gmail-mcp' }]
-    })
-  });
-
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    throw new Error(err.error?.message || `API error ${resp.status}`);
+  // Decode body
+  let body = '';
+  const extractText = (parts) => {
+    for (const part of (parts || [])) {
+      if (part.mimeType === 'text/plain' && part.body?.data) {
+        body += atob(part.body.data.replace(/-/g,'+').replace(/_/g,'/'));
+      } else if (part.parts) {
+        extractText(part.parts);
+      }
+    }
+  };
+  if (msg.payload?.body?.data) {
+    body = atob(msg.payload.body.data.replace(/-/g,'+').replace(/_/g,'/'));
+  } else {
+    extractText(msg.payload?.parts);
   }
 
-  const data = await resp.json();
-  const text = data.content
-    .filter(b => b.type === 'text')
-    .map(b => b.text)
-    .join('');
+  // Clean up body
+  body = body.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
 
+  const isUnread = (msg.labelIds || []).includes('UNREAD');
+  const isStarred = (msg.labelIds || []).includes('STARRED');
+
+  // Format date
+  const dateStr = h('Date');
+  let dateFormatted = '';
   try {
-    const clean = text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    console.error('Parse error, raw:', text.slice(0, 500));
-    return [];
-  }
+    const d = new Date(dateStr);
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    if (isToday) {
+      dateFormatted = d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    } else {
+      dateFormatted = d.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+  } catch {}
+
+  return {
+    id: msg.id,
+    threadId: msg.threadId,
+    from: h('From').replace(/<[^>]+>/, '').trim() || h('From'),
+    fromEmail: (h('From').match(/<([^>]+)>/) || [])[1] || h('From'),
+    to: h('To'),
+    subject: h('Subject') || '(件名なし)',
+    date: dateFormatted,
+    snippet: msg.snippet || '',
+    body: body.slice(0, 800),
+    isUnread,
+    isStarred,
+    labelIds: msg.labelIds || []
+  };
 }
 
 // ── Render ──
 function setListLoading(type) {
-  const el = document.getElementById(`mail-list-${type}`);
-  el.innerHTML = [1,2,3,4].map(() => `
-    <div class="skeleton">
+  document.getElementById(`mail-list-${type}`).innerHTML =
+    [1,2,3,4].map(() => `<div class="skeleton">
       <div class="skel-line" style="width:40%;height:10px"></div>
       <div class="skel-line" style="width:80%"></div>
       <div class="skel-line"></div>
@@ -1107,18 +624,13 @@ function setListLoading(type) {
 }
 
 function showError(type, msg) {
-  const el = document.getElementById(`mail-list-${type}`);
-  el.innerHTML = `<div class="empty-state">
-    <div class="empty-icon">⚠️</div>
-    <div class="empty-title">読み込みエラー</div>
-    <div class="empty-sub">${msg}<br>上の更新ボタンを試してください</div>
-  </div>`;
+  document.getElementById(`mail-list-${type}`).innerHTML =
+    `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">読み込みエラー</div><div class="empty-sub">${escHtml(msg)}</div></div>`;
 }
 
 function renderMailList(type) {
   const el = document.getElementById(`mail-list-${type}`);
   const list = emails[type];
-
   if (!list.length) {
     el.innerHTML = `<div class="empty-state">
       <div class="empty-icon">${type === 'unread' ? '📭' : '⭐'}</div>
@@ -1127,20 +639,14 @@ function renderMailList(type) {
     </div>`;
     return;
   }
-
   el.innerHTML = list.map((m, i) => {
     const tags = [];
     if (m.isUnread) tags.push(`<span class="icon-tag tag-unread">● 未読</span>`);
     if (m.isStarred) tags.push(`<span class="icon-tag tag-starred">★ スター</span>`);
-    return `
-    <div class="mail-card ${m.isUnread ? 'unread' : ''} ${m.isStarred ? 'starred' : ''}"
-         onclick="openMail('${type}', ${i})">
-      <div class="mail-header">
-        <div class="mail-from">${escHtml(m.from)}</div>
-        <div class="mail-date">${m.date || ''}</div>
-      </div>
-      <div class="mail-subject">${escHtml(m.subject || '(件名なし)')}</div>
-      <div class="mail-snippet">${escHtml(m.snippet || '')}</div>
+    return `<div class="mail-card ${m.isUnread?'unread':''} ${m.isStarred?'starred':''}" onclick="openMail('${type}',${i})">
+      <div class="mail-header"><div class="mail-from">${escHtml(m.from)}</div><div class="mail-date">${m.date}</div></div>
+      <div class="mail-subject">${escHtml(m.subject)}</div>
+      <div class="mail-snippet">${escHtml(m.snippet)}</div>
       ${tags.length ? `<div class="mail-icons">${tags.join('')}</div>` : ''}
     </div>`;
   }).join('');
@@ -1151,17 +657,16 @@ function updateBadges() {
   const s = emails.starred.length;
   document.getElementById('unread-count').textContent = `${u} 未読`;
   document.getElementById('star-count').textContent = `★ ${s}`;
-  const navMail = document.getElementById('nav-mail');
-  if (u > 0) navMail.classList.add('has-dot'); else navMail.classList.remove('has-dot');
+  document.getElementById('nav-mail').classList.toggle('has-dot', u > 0);
 }
 
 // ── Mail Detail ──
 function openMail(type, idx) {
   currentMail = { ...emails[type][idx], _type: type, _idx: idx };
-  document.getElementById('detail-subject').textContent = currentMail.subject || '(件名なし)';
-  document.getElementById('detail-from').textContent = currentMail.from || '—';
-  document.getElementById('detail-to').textContent = currentMail.to || '—';
-  document.getElementById('detail-date').textContent = currentMail.date || '—';
+  document.getElementById('detail-subject').textContent = currentMail.subject;
+  document.getElementById('detail-from').textContent = currentMail.from;
+  document.getElementById('detail-to').textContent = currentMail.to;
+  document.getElementById('detail-date').textContent = currentMail.date;
   document.getElementById('detail-body').textContent = currentMail.body || currentMail.snippet || '(本文なし)';
   document.getElementById('detail-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -1170,7 +675,6 @@ function openMail(type, idx) {
 function closeDetail() {
   const panel = document.getElementById('reply-panel');
   const ta = document.getElementById('reply-textarea');
-  // Save draft before closing if panel was open
   if (panel.classList.contains('open') && currentMail?.id && ta.value.trim()) {
     saveDraft(currentMail.id, ta.value);
   }
@@ -1187,138 +691,75 @@ function handleOverlayClick(e) {
   if (e.target === document.getElementById('detail-overlay')) closeDetail();
 }
 
+// ── Mark Read/Unread via Gmail API ──
 async function markRead() {
   if (!currentMail) return;
-  await changeMailStatus(currentMail.id, 'read');
-  emails[currentMail._type][currentMail._idx].isUnread = false;
-  renderMailList(currentMail._type);
-  updateBadges();
-  closeDetail();
-  showToast('✓ 既読にしました');
+  try {
+    await gmailPost(`messages/${currentMail.id}/modify`, { removeLabelIds: ['UNREAD'] });
+    emails[currentMail._type][currentMail._idx].isUnread = false;
+    renderMailList(currentMail._type);
+    updateBadges();
+    closeDetail();
+    showToast('✓ 既読にしました');
+  } catch (e) { showToast('⚠ ' + e.message); }
 }
 
 async function markUnread() {
   if (!currentMail) return;
-  await changeMailStatus(currentMail.id, 'unread');
-  emails[currentMail._type][currentMail._idx].isUnread = true;
-  renderMailList(currentMail._type);
-  updateBadges();
-  closeDetail();
-  showToast('● 未読に戻しました');
-}
-
-async function changeMailStatus(id, status) {
   try {
-    await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 256,
-        messages: [{
-          role: 'user',
-          content: `Mark Gmail message id "${id}" as ${status} using the Gmail MCP tool. Just do it, no explanation needed.`
-        }],
-        mcp_servers: [{ type: 'url', url: 'https://gmail.mcp.claude.com/mcp', name: 'gmail-mcp' }]
-      })
-    });
-  } catch (e) {
-    console.error('Status change error:', e);
-  }
+    await gmailPost(`messages/${currentMail.id}/modify`, { addLabelIds: ['UNREAD'] });
+    emails[currentMail._type][currentMail._idx].isUnread = true;
+    renderMailList(currentMail._type);
+    updateBadges();
+    closeDetail();
+    showToast('● 未読に戻しました');
+  } catch (e) { showToast('⚠ ' + e.message); }
 }
 
-// ── Signature & Settings ──
-let signature = '';
-
-function loadSettings() {
-  signature = localStorage.getItem('mf-signature') || '';
-}
-
-// ── Draft (auto-save per mail id) ──
-let draftTimer = null;
-
-function getDraftKey(mailId) { return `mf-draft-${mailId}`; }
-
-function loadDraft(mailId) {
-  try { return localStorage.getItem(getDraftKey(mailId)) || ''; } catch { return ''; }
-}
-
-function saveDraft(mailId, text) {
-  try {
-    if (text.trim()) {
-      localStorage.setItem(getDraftKey(mailId), text);
-    } else {
-      localStorage.removeItem(getDraftKey(mailId));
-    }
-  } catch {}
-}
-
-function clearDraft(mailId) {
-  try { localStorage.removeItem(getDraftKey(mailId)); } catch {}
-}
-
-function showDraftIndicator(visible) {
-  document.getElementById('draft-indicator').classList.toggle('visible', visible);
-}
-
-// ── Reply Panel ──
+// ── Reply ──
 function toggleReply() {
   const panel = document.getElementById('reply-panel');
-  const isOpen = panel.classList.contains('open');
-  if (isOpen) {
-    closeReply();
+  if (panel.classList.contains('open')) { closeReply(); return; }
+
+  panel.classList.add('open');
+  document.getElementById('reply-to-addr').textContent = currentMail?.fromEmail || currentMail?.from || '—';
+
+  // Quote
+  const originalBody = (currentMail?.body || currentMail?.snippet || '').trim();
+  const qBlock = document.getElementById('reply-quote-block');
+  if (originalBody) {
+    document.getElementById('reply-quote-text').textContent = originalBody.slice(0, 300) + (originalBody.length > 300 ? '…' : '');
+    qBlock.style.display = '';
   } else {
-    panel.classList.add('open');
-    document.getElementById('reply-to-addr').textContent = currentMail?.from || '—';
-
-    // ① Quote: show original mail body
-    const quoteBlock = document.getElementById('reply-quote-block');
-    const quoteText = document.getElementById('reply-quote-text');
-    const originalBody = (currentMail?.body || currentMail?.snippet || '').trim();
-    if (originalBody) {
-      quoteText.textContent = originalBody.slice(0, 300) + (originalBody.length > 300 ? '…' : '');
-      quoteBlock.style.display = '';
-    } else {
-      quoteBlock.style.display = 'none';
-    }
-
-    // ② Draft: restore saved draft or build default with signature
-    const savedDraft = loadDraft(currentMail?.id || '');
-    const ta = document.getElementById('reply-textarea');
-    if (savedDraft) {
-      ta.value = savedDraft;
-      showDraftIndicator(true);
-    } else {
-      // ③ Signature: pre-fill with blank line + separator + signature
-      const sig = signature.trim();
-      ta.value = sig ? `\n\n--\n${sig}` : '';
-    }
-
-    // Place cursor at top
-    setTimeout(() => {
-      ta.focus();
-      ta.setSelectionRange(0, 0);
-      ta.scrollTop = 0;
-    }, 360);
-
-    // Auto-save draft on input
-    ta.oninput = () => {
-      clearTimeout(draftTimer);
-      draftTimer = setTimeout(() => {
-        saveDraft(currentMail?.id || '', ta.value);
-        showDraftIndicator(true);
-      }, 800);
-    };
+    qBlock.style.display = 'none';
   }
+
+  // Draft or signature
+  const ta = document.getElementById('reply-textarea');
+  const saved = loadDraft(currentMail?.id || '');
+  if (saved) {
+    ta.value = saved;
+    showDraftIndicator(true);
+  } else {
+    const sig = signature.trim();
+    ta.value = sig ? `\n\n--\n${sig}` : '';
+  }
+
+  setTimeout(() => { ta.focus(); ta.setSelectionRange(0, 0); ta.scrollTop = 0; }, 360);
+
+  ta.oninput = () => {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => {
+      saveDraft(currentMail?.id || '', ta.value);
+      showDraftIndicator(true);
+    }, 800);
+  };
 }
 
 function closeReply() {
-  document.getElementById('reply-panel').classList.remove('open');
   const ta = document.getElementById('reply-textarea');
-  // Save draft on close if there's content
-  if (currentMail?.id && ta.value.trim()) {
-    saveDraft(currentMail.id, ta.value);
-  }
+  if (currentMail?.id && ta.value.trim()) saveDraft(currentMail.id, ta.value);
+  document.getElementById('reply-panel').classList.remove('open');
   ta.oninput = null;
   showDraftIndicator(false);
 }
@@ -1330,55 +771,31 @@ async function sendReply() {
   if (!userBody) { showToast('⚠ 本文を入力してください'); return; }
 
   const btn = document.getElementById('reply-send-btn');
-  const label = document.getElementById('reply-send-label');
-  const spinner = document.getElementById('reply-spinner');
-
-  btn.disabled = true;
-  label.style.display = 'none';
-  spinner.style.display = 'block';
+  const lbl = document.getElementById('reply-send-label');
+  const spn = document.getElementById('reply-spinner');
+  btn.disabled = true; lbl.style.display = 'none'; spn.style.display = 'block';
 
   try {
+    const to = currentMail.fromEmail || currentMail.from;
     const subjectRaw = currentMail.subject || '';
     const subject = subjectRaw.startsWith('Re:') ? subjectRaw : `Re: ${subjectRaw}`;
-    const to = currentMail.from || '';
-    const threadId = currentMail.threadId || '';
-
-    // Build full body: user text + quoted original
     const originalBody = (currentMail.body || currentMail.snippet || '').trim();
     const quotedSection = originalBody
-      ? `\n\n---\n${currentMail.from} (${currentMail.date || ''}) wrote:\n${originalBody}`
+      ? `\n\n---\n${currentMail.from} (${currentMail.date}) wrote:\n${originalBody}`
       : '';
     const fullBody = `${userBody}${quotedSection}`;
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: `Send a reply email using the Gmail MCP send_email tool:
-- To: ${to}
-- Subject: ${subject}
-- Body: ${fullBody}
-- threadId: ${threadId || '(none)'}
-Just send it with no explanation.`
-        }],
-        mcp_servers: [{ type: 'url', url: 'https://gmail.mcp.claude.com/mcp', name: 'gmail-mcp' }]
-      })
+    // Build RFC 2822 message
+    const raw = buildRawEmail(to, subject, fullBody, currentMail.threadId);
+
+    await gmailPost('messages/send', {
+      raw,
+      threadId: currentMail.threadId || undefined
     });
 
-    if (!resp.ok) throw new Error(`API error ${resp.status}`);
-
-    // Clear draft after successful send
     clearDraft(currentMail.id);
-
-    // Mark as read
-    await changeMailStatus(currentMail.id, 'read');
-    if (emails[currentMail._type]?.[currentMail._idx]) {
-      emails[currentMail._type][currentMail._idx].isUnread = false;
-    }
+    await gmailPost(`messages/${currentMail.id}/modify`, { removeLabelIds: ['UNREAD'] });
+    emails[currentMail._type][currentMail._idx].isUnread = false;
     renderMailList(currentMail._type);
     updateBadges();
 
@@ -1386,28 +803,56 @@ Just send it with no explanation.`
     closeDetail();
     showToast('✉ 返信を送信しました');
   } catch (e) {
-    showToast(`⚠ 送信失敗: ${e.message}`);
+    showToast('⚠ 送信失敗: ' + e.message);
   } finally {
-    btn.disabled = false;
-    label.style.display = '';
-    spinner.style.display = 'none';
+    btn.disabled = false; lbl.style.display = ''; spn.style.display = 'none';
   }
 }
 
-// ── Settings & signature modal ──
-function openSettings() {
-  document.getElementById('sig-textarea').value = signature;
-  document.getElementById('settings-modal').classList.add('open');
+function buildRawEmail(to, subject, body, threadId) {
+  const lines = [
+    `To: ${to}`,
+    `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    btoa(unescape(encodeURIComponent(body)))
+  ];
+  return btoa(unescape(encodeURIComponent(lines.join('\r\n'))))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function closeSettings() {
-  document.getElementById('settings-modal').classList.remove('open');
+// ── Draft ──
+function getDraftKey(id) { return `mf-draft-${id}`; }
+function loadDraft(id) { try { return localStorage.getItem(getDraftKey(id)) || ''; } catch { return ''; } }
+function saveDraft(id, text) { try { text.trim() ? localStorage.setItem(getDraftKey(id), text) : localStorage.removeItem(getDraftKey(id)); } catch {} }
+function clearDraft(id) { try { localStorage.removeItem(getDraftKey(id)); } catch {} }
+function showDraftIndicator(v) { document.getElementById('draft-indicator').classList.toggle('visible', v); }
+
+// ── Tab / View switching ──
+function switchMailTab(tab) {
+  document.getElementById('tab-unread').classList.toggle('active', tab === 'unread');
+  document.getElementById('tab-starred').classList.toggle('active', tab === 'starred');
+  document.getElementById('mail-list-unread').style.display = tab === 'unread' ? '' : 'none';
+  document.getElementById('mail-list-starred').style.display = tab === 'starred' ? '' : 'none';
 }
 
-function handleSettingsClick(e) {
-  if (e.target === document.getElementById('settings-modal')) closeSettings();
+function switchView(view) {
+  ['mail','todo'].forEach(v => {
+    document.getElementById(`view-${v}`).classList.toggle('active', v === view);
+    document.getElementById(`nav-${v}`).classList.toggle('active', v === view);
+  });
+  document.getElementById('tabs-bar').style.display = view === 'mail' ? '' : 'none';
 }
 
+// ── Settings ──
+function loadSettings() {
+  signature = localStorage.getItem('mf-signature') || '';
+}
+function openSettings() { document.getElementById('sig-textarea').value = signature; document.getElementById('settings-modal').classList.add('open'); }
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+function handleSettingsClick(e) { if (e.target === document.getElementById('settings-modal')) closeSettings(); }
 function saveSettings() {
   signature = document.getElementById('sig-textarea').value;
   localStorage.setItem('mf-signature', signature);
@@ -1415,131 +860,60 @@ function saveSettings() {
   showToast('✓ 署名を保存しました');
 }
 
-// ── Tab switching ──
-function switchMailTab(tab) {
-  currentMailTab = tab;
-  document.getElementById('tab-unread').classList.toggle('active', tab === 'unread');
-  document.getElementById('tab-starred').classList.toggle('active', tab === 'starred');
-  document.getElementById('mail-list-unread').style.display = tab === 'unread' ? '' : 'none';
-  document.getElementById('mail-list-starred').style.display = tab === 'starred' ? '' : 'none';
+// ── Setup Guide ──
+function showSetupGuide() {
+  document.getElementById('guide-origin').textContent = location.origin;
+  document.getElementById('guide-modal').classList.add('open');
 }
-
-// ── View switching ──
-function switchView(view) {
-  ['mail', 'todo'].forEach(v => {
-    document.getElementById(`view-${v}`).classList.toggle('active', v === view);
-    document.getElementById(`nav-${v}`).classList.toggle('active', v === view);
-  });
-  const tabsBar = document.getElementById('tabs-bar');
-  tabsBar.style.display = view === 'mail' ? '' : 'none';
-}
+function closeGuide() { document.getElementById('guide-modal').classList.remove('open'); }
 
 // ── ToDo ──
 let todos = [];
-
-function loadTodos() {
-  try {
-    todos = JSON.parse(localStorage.getItem('mf-todos') || '[]');
-  } catch { todos = []; }
-  renderTodos();
-}
-
-function saveTodos() {
-  localStorage.setItem('mf-todos', JSON.stringify(todos));
-}
-
+function loadTodos() { try { todos = JSON.parse(localStorage.getItem('mf-todos') || '[]'); } catch { todos = []; } renderTodos(); }
+function saveTodos() { localStorage.setItem('mf-todos', JSON.stringify(todos)); }
 function addTodo() {
   const inp = document.getElementById('todo-input');
   const text = inp.value.trim();
   if (!text) return;
   todos.unshift({ id: Date.now(), text, done: false });
-  saveTodos();
-  renderTodos();
-  inp.value = '';
-  inp.focus();
+  saveTodos(); renderTodos(); inp.value = ''; inp.focus();
 }
-
-function toggleTodo(id) {
-  const t = todos.find(x => x.id === id);
-  if (t) { t.done = !t.done; saveTodos(); renderTodos(); }
-}
-
-function deleteTodo(id) {
-  todos = todos.filter(x => x.id !== id);
-  saveTodos();
-  renderTodos();
-}
-
+function toggleTodo(id) { const t = todos.find(x => x.id === id); if (t) { t.done = !t.done; saveTodos(); renderTodos(); } }
+function deleteTodo(id) { todos = todos.filter(x => x.id !== id); saveTodos(); renderTodos(); }
 function clearDoneTodos() {
-  const removed = todos.filter(x => x.done).length;
+  const n = todos.filter(x => x.done).length;
   todos = todos.filter(x => !x.done);
-  saveTodos();
-  renderTodos();
-  if (removed) showToast(`🗑 ${removed} 件削除しました`);
+  saveTodos(); renderTodos();
+  if (n) showToast(`🗑 ${n} 件削除しました`);
 }
-
 function renderTodos() {
-  const container = document.getElementById('todo-items');
-  const total = todos.length;
+  const c = document.getElementById('todo-items');
   const done = todos.filter(x => x.done).length;
-  document.getElementById('todo-count').textContent = `${total} 件 (完了 ${done})`;
-
-  const navTodo = document.getElementById('nav-todo');
-  const pending = todos.filter(x => !x.done).length;
-  if (pending > 0) navTodo.classList.add('has-dot'); else navTodo.classList.remove('has-dot');
-
-  if (!todos.length) {
-    container.innerHTML = `<div class="empty-state" style="padding:30px 0">
-      <div class="empty-icon">📋</div>
-      <div class="empty-title">タスクなし</div>
-      <div class="empty-sub">上のフォームから追加してください</div>
-    </div>`;
-    return;
-  }
-
-  container.innerHTML = todos.map(t => `
-    <div class="todo-item ${t.done ? 'done' : ''}" id="todo-${t.id}">
-      <button class="todo-check" onclick="toggleTodo(${t.id})">
-        <span class="todo-check-icon">✓</span>
-      </button>
-      <span class="todo-text" onclick="toggleTodo(${t.id})">${escHtml(t.text)}</span>
-      <button class="todo-delete" onclick="deleteTodo(${t.id})" title="削除">✕</button>
-    </div>
-  `).join('');
+  document.getElementById('todo-count').textContent = `${todos.length} 件 (完了 ${done})`;
+  document.getElementById('nav-todo').classList.toggle('has-dot', todos.filter(x=>!x.done).length > 0);
+  if (!todos.length) { c.innerHTML = `<div class="empty-state" style="padding:30px 0"><div class="empty-icon">📋</div><div class="empty-title">タスクなし</div><div class="empty-sub">上から追加してください</div></div>`; return; }
+  c.innerHTML = todos.map(t => `<div class="todo-item ${t.done?'done':''}">
+    <button class="todo-check" onclick="toggleTodo(${t.id})"><span class="todo-check-icon">✓</span></button>
+    <span class="todo-text" onclick="toggleTodo(${t.id})">${escHtml(t.text)}</span>
+    <button class="todo-delete" onclick="deleteTodo(${t.id})">✕</button>
+  </div>`).join('');
 }
-
-// ── Enter key for todo ──
-document.getElementById('todo-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') addTodo();
-});
+document.getElementById('todo-input').addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
 
 // ── Toast ──
 let toastTimer;
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
+  t.textContent = msg; t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
 // ── Helpers ──
-function escHtml(s) {
-  return String(s || '')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
-}
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ── SW Registration ──
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
-
-// ── Start ──
-loadSettings();
-init();
+// ── SW ──
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>
