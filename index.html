@@ -268,7 +268,7 @@
     <div class="login-desc">Gmail APIで未読・スターメールを表示します。</div>
     <div>
       <div class="field-label">Google Client ID</div>
-      <input type="text" class="text-input" id="client-id-input" placeholder="xxxxxxxx.apps.googleusercontent.com">
+      <input type="text" class="text-input" id="client-id-input" value="431372307551-8feqkb7jpbh3824sm1r40meobe0e124j.apps.googleusercontent.com" readonly style="opacity:0.5;cursor:default;font-size:10px;">
     </div>
     <button class="google-btn" onclick="startLogin()">
       <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-3.59-13.46-8.83l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
@@ -659,13 +659,41 @@ async function fetchDetails(acct, list) {
   return res.filter(Boolean).map(msg => parseMsg(msg, acct.email));
 }
 
+function b64ToBytes(b64) {
+  // Gmail uses URL-safe base64 (- and _ instead of + and /)
+  const std = b64.replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(std);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return bytes;
+}
+
+function decodeB64UTF8(b64) {
+  try {
+    return new TextDecoder('utf-8').decode(b64ToBytes(b64));
+  } catch {
+    return atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+  }
+}
+
 function parseMsg(msg, acctEmail) {
   const h = n => (msg.payload?.headers||[]).find(h=>h.name.toLowerCase()===n.toLowerCase())?.value||'';
   let body = '';
-  const ext = parts => { for(const p of (parts||[])) { if(p.mimeType==='text/plain'&&p.body?.data) body+=atob(p.body.data.replace(/-/g,'+').replace(/_/g,'/')); else if(p.parts) ext(p.parts); } };
-  if(msg.payload?.body?.data) body=atob(msg.payload.body.data.replace(/-/g,'+').replace(/_/g,'/'));
-  else ext(msg.payload?.parts);
-  body=body.replace(/\r\n/g,'\n').trim();
+  const ext = parts => {
+    for (const p of (parts||[])) {
+      if (p.mimeType === 'text/plain' && p.body?.data) {
+        body += decodeB64UTF8(p.body.data);
+      } else if (p.parts) {
+        ext(p.parts);
+      }
+    }
+  };
+  if (msg.payload?.body?.data) {
+    body = decodeB64UTF8(msg.payload.body.data);
+  } else {
+    ext(msg.payload?.parts);
+  }
+  body = body.replace(/\r\n/g, '\n').trim();
   let dateFmt='';
   try { const d=new Date(h('Date')); const today=d.toDateString()===new Date().toDateString(); dateFmt=today?d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}); } catch{}
   return { id:msg.id, threadId:msg.threadId, acct:acctEmail,
