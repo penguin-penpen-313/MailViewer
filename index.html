@@ -73,7 +73,7 @@
     .acct-chip.active{background:var(--surface2);border-color:var(--accent2);color:var(--accent2);}
 
     /* Scroll */
-    .scroll-area{overflow-y:auto;padding:0 14px;-webkit-overflow-scrolling:touch;}
+    .scroll-area{flex:1;overflow-y:auto;padding:0 14px;-webkit-overflow-scrolling:touch;min-height:0;}
     .scroll-area::-webkit-scrollbar{width:3px;}
     .scroll-area::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
 
@@ -246,7 +246,7 @@
     .nav-dot{position:absolute;top:5px;right:calc(50% - 14px);width:5px;height:5px;background:var(--unread);border-radius:50%;display:none;}
     .nav-btn.has-dot .nav-dot{display:block;}
 
-    .view{display:none;flex-direction:column;height:100%;overflow:hidden;}
+    .view{display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
     .view.active{display:flex;}
 
     .toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--surface2);border:1px solid var(--border2);border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;color:var(--text);opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;z-index:400;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
@@ -258,18 +258,15 @@
 <!-- Login -->
 <div id="login-screen">
   <div class="login-logo">MailFocus</div>
-  <div class="login-ver">v1.1</div>
+  <div class="login-ver">v1.2</div>
   <div id="saved-accts-wrap" class="saved-accts-wrap" style="display:none">
     <div class="saved-accts-label">保存済みアカウント</div>
     <div id="saved-accts-list"></div>
   </div>
   <div class="login-card">
-    <div class="login-title">アカウントを追加</div>
+    <div class="login-title">Googleでサインイン</div>
     <div class="login-desc">Gmail APIで未読・スターメールを表示します。</div>
-    <div>
-      <div class="field-label">Google Client ID</div>
-      <input type="text" class="text-input" id="client-id-input" value="431372307551-8feqkb7jpbh3824sm1r40meobe0e124j.apps.googleusercontent.com" readonly style="opacity:0.5;cursor:default;font-size:10px;">
-    </div>
+    <input type="hidden" id="client-id-input" value="431372307551-8feqkb7jpbh3824sm1r40meobe0e124j.apps.googleusercontent.com">
     <button class="google-btn" onclick="startLogin()">
       <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-3.59-13.46-8.83l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       Googleアカウントでログイン
@@ -283,7 +280,7 @@
   <header>
     <div class="logo-wrap">
       <div class="logo">MailFocus</div>
-      <span class="version-badge">v1.1</span>
+      <span class="version-badge">v1.2</span>
     </div>
     <div class="header-right">
       <span class="badge badge-unread" id="unread-count">…</span>
@@ -525,8 +522,11 @@ function renderSavedAccounts(saved) {
   wrap.style.display = '';
   list.innerHTML = saved.map(a => `
     <div class="account-chip" onclick="quickLogin('${esc(a.email)}','${esc(a.clientId)}')">
-      <div class="account-avatar">${a.email[0].toUpperCase()}</div>
-      <div class="account-email">${esc(a.email)}</div>
+      <div class="account-avatar">${(a.displayName || a.email)[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.displayName || a.email.split('@')[0])}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.email)}</div>
+      </div>
       <button class="account-remove" onclick="event.stopPropagation();removeSaved('${esc(a.email)}')">✕</button>
     </div>`).join('');
 }
@@ -554,21 +554,27 @@ async function startLogin() {
     callback: async resp => {
       if (resp.error) { showToast('❌ 認証エラー: ' + resp.error); return; }
       const token = resp.access_token;
-      let email = '?';
+      let email = '?', displayName = '';
       try {
-        const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: `Bearer ${token}` } });
-        email = (await r.json()).email || '?';
+        const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const info = await r.json();
+        email = info.email || '?';
+        // name may be encoded — use as-is since it comes as JSON (already UTF-8)
+        displayName = info.name || email.split('@')[0];
       } catch {}
 
       if (accounts.find(a => a.email === email)) {
-        accounts = accounts.map(a => a.email === email ? { ...a, token } : a);
+        accounts = accounts.map(a => a.email === email ? { ...a, token, displayName } : a);
       } else {
-        accounts.push({ email, clientId, token });
+        accounts.push({ email, clientId, token, displayName });
       }
-      const toSave = accounts.map(a => ({ email: a.email, clientId: a.clientId }));
+      const toSave = accounts.map(a => ({ email: a.email, clientId: a.clientId, displayName: a.displayName || '' }));
       localStorage.setItem('mf-accounts', JSON.stringify(toSave));
 
       showApp();
+      updateAccountsHeader();
       loadAllEmails();
       renderTodos();
     }
@@ -579,6 +585,38 @@ async function startLogin() {
 function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = '';
+  updateAccountsHeader();
+}
+
+// アカウント情報をヘッダーに表示
+function updateAccountsHeader() {
+  // Remove existing account bar if any
+  const existing = document.getElementById('accounts-header-bar');
+  if (existing) existing.remove();
+
+  if (accounts.length === 0) return;
+
+  const bar = document.createElement('div');
+  bar.id = 'accounts-header-bar';
+  bar.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 14px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;';
+
+  accounts.forEach(a => {
+    const chip = document.createElement('div');
+    chip.style.cssText = 'display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:3px 10px 3px 5px;flex-shrink:0;';
+    const avatar = document.createElement('div');
+    avatar.style.cssText = 'width:18px;height:18px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;flex-shrink:0;';
+    avatar.textContent = (a.displayName || a.email)[0].toUpperCase();
+    const name = document.createElement('span');
+    name.style.cssText = 'font-size:10px;font-family:var(--mono);color:var(--text2);white-space:nowrap;';
+    name.textContent = a.displayName || a.email.split('@')[0];
+    chip.appendChild(avatar);
+    chip.appendChild(name);
+    bar.appendChild(chip);
+  });
+
+  // Insert after header, before mail-tabs-bar
+  const header = document.querySelector('header');
+  header.insertAdjacentElement('afterend', bar);
 }
 
 function showLoginForm() {
@@ -639,8 +677,8 @@ async function loadAllEmails() {
     const allU = [], allS = [];
     await Promise.all(accounts.map(async acct => {
       const [ud, sd] = await Promise.all([
-        gmailGet(acct,'messages',{q:'label:unread',maxResults:25}).catch(()=>({})),
-        gmailGet(acct,'messages',{q:'label:starred',maxResults:25}).catch(()=>({}))
+        gmailGet(acct,'messages',{q:'label:unread',maxResults:50}).catch(()=>({})),
+        gmailGet(acct,'messages',{q:'label:starred',maxResults:50}).catch(()=>({}))
       ]);
       const [u, s] = await Promise.all([fetchDetails(acct, ud.messages||[]), fetchDetails(acct, sd.messages||[])]);
       allU.push(...u); allS.push(...s);
@@ -655,7 +693,7 @@ async function loadAllEmails() {
 
 async function fetchDetails(acct, list) {
   if (!list.length) return [];
-  const res = await Promise.all(list.slice(0,20).map(m => gmailGet(acct,`messages/${m.id}`,{format:'full'}).catch(()=>null)));
+  const res = await Promise.all(list.slice(0,50).map(m => gmailGet(acct,`messages/${m.id}`,{format:'full'}).catch(()=>null)));
   return res.filter(Boolean).map(msg => parseMsg(msg, acct.email));
 }
 
@@ -1106,10 +1144,13 @@ document.getElementById('todo-input')?.addEventListener('keydown',e=>{ if(e.key=
 // Settings
 function openSettings() {
   document.getElementById('sig-textarea').value=signature;
-  document.getElementById('settings-accounts-list').innerHTML=accounts.map(a=>`
+  document.getElementById('settings-accounts-list').innerHTML = accounts.map(a => `
     <div class="account-chip" style="margin-bottom:5px">
-      <div class="account-avatar">${a.email[0].toUpperCase()}</div>
-      <div class="account-email">${esc(a.email)}</div>
+      <div class="account-avatar">${(a.displayName || a.email)[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.displayName || a.email.split('@')[0])}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.email)}</div>
+      </div>
       <button class="account-remove" onclick="logoutAccount('${esc(a.email)}')">✕</button>
     </div>`).join('');
   document.getElementById('settings-modal').classList.add('open');
