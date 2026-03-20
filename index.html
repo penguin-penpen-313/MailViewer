@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MailFocus">
   <link rel="manifest" href="manifest.json">
-  <title>MailFocus</title>
+  <title>MailFocus v1.1</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -112,12 +112,13 @@
     .sheet-body{flex:1;overflow-y:auto;padding:13px 16px;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap;word-break:break-word;}
     .sheet-body::-webkit-scrollbar{width:3px;}
     .sheet-body::-webkit-scrollbar-thumb{background:var(--surface3);}
-    .sheet-actions{padding:9px 13px calc(9px + env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0;}
-    .action-btn{flex:1;padding:10px 5px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:3px;}
+    .sheet-actions{padding:9px 13px calc(9px + env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;gap:5px;flex-shrink:0;}
+    .action-btn{flex:1;padding:10px 4px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;}
     .action-btn:active{transform:scale(0.96);}
     .btn-reply{background:rgba(124,106,247,0.15);border-color:var(--accent);color:var(--accent2);}
     .btn-read{background:rgba(52,211,153,0.12);border-color:rgba(52,211,153,0.3);color:var(--unread);}
-
+    .btn-star{background:transparent;border-color:var(--border2);color:var(--text3);}
+    .btn-star.on{background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.5);color:var(--star);}
     /* Reply Panel */
     .reply-panel{border-top:1px solid var(--border2);background:var(--surface2);flex-shrink:0;max-height:0;overflow:hidden;transition:max-height 0.35s cubic-bezier(0.32,0.72,0,1);}
     .reply-panel.open{max-height:460px;}
@@ -257,7 +258,7 @@
 <!-- Login -->
 <div id="login-screen">
   <div class="login-logo">MailFocus</div>
-  <div class="login-ver">v1.0.0</div>
+  <div class="login-ver">v1.1</div>
   <div id="saved-accts-wrap" class="saved-accts-wrap" style="display:none">
     <div class="saved-accts-label">保存済みアカウント</div>
     <div id="saved-accts-list"></div>
@@ -282,7 +283,7 @@
   <header>
     <div class="logo-wrap">
       <div class="logo">MailFocus</div>
-      <span class="version-badge">v1.0.0</span>
+      <span class="version-badge">v1.1</span>
     </div>
     <div class="header-right">
       <span class="badge badge-unread" id="unread-count">…</span>
@@ -369,6 +370,7 @@
       <button class="action-btn btn-reply" onclick="toggleReply()">↩ 返信</button>
       <button class="action-btn btn-read" onclick="markRead()">✓ 既読</button>
       <button class="action-btn" onclick="markUnread()">● 未読</button>
+      <button class="action-btn btn-star" id="star-action-btn" onclick="toggleStar()">★ スター</button>
     </div>
   </div>
 </div>
@@ -730,8 +732,17 @@ function openMail(idx) {
   document.getElementById('detail-date').textContent=currentMail.date;
   document.getElementById('detail-acct').textContent=currentMail.acct;
   document.getElementById('detail-body').textContent=currentMail.body||currentMail.snippet||'(本文なし)';
+  // Update star button
+  updateStarBtn(currentMail.isStarred);
   document.getElementById('detail-overlay').classList.add('open');
   document.body.style.overflow='hidden';
+}
+
+function updateStarBtn(isStarred) {
+  const btn = document.getElementById('star-action-btn');
+  if (!btn) return;
+  btn.textContent = '★ スター';
+  btn.className = 'action-btn btn-star' + (isStarred ? ' on' : '');
 }
 
 function closeDetail() {
@@ -812,9 +823,56 @@ async function sendReply() {
   finally{ btn.disabled=false; lbl.style.display=''; spn.style.display='none'; }
 }
 
-function buildRaw(to,subj,body) {
-  const lines=[`To: ${to}`,`Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subj)))}?=`,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',btoa(unescape(encodeURIComponent(body)))];
-  return btoa(unescape(encodeURIComponent(lines.join('\r\n')))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+async function toggleStar() {
+  if (!currentMail) return;
+  const acct = getAcct(currentMail.acct); if (!acct) return;
+  const addStar = !currentMail.isStarred;
+  try {
+    if (addStar) {
+      await gmailPost(acct, `messages/${currentMail.id}/modify`, { addLabelIds: ['STARRED'] });
+    } else {
+      await gmailPost(acct, `messages/${currentMail.id}/modify`, { removeLabelIds: ['STARRED'] });
+    }
+    currentMail.isStarred = addStar;
+    emails.unread = emails.unread.map(m => m.id===currentMail.id ? {...m, isStarred:addStar} : m);
+    emails.starred = emails.starred.map(m => m.id===currentMail.id ? {...m, isStarred:addStar} : m);
+    if (addStar && !emails.starred.find(m=>m.id===currentMail.id)) {
+      emails.starred.unshift({...currentMail});
+    } else if (!addStar) {
+      emails.starred = emails.starred.filter(m=>m.id!==currentMail.id);
+    }
+    updateStarBtn(addStar);
+    renderMailList(); updateBadges();
+    showToast(addStar ? '★ スターを付けました' : '☆ スターを外しました');
+  } catch(e) { showToast('⚠ ' + e.message); }
+}
+
+// UTF-8 safe base64 encoding
+function toBase64UTF8(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
+}
+
+function buildRaw(to, subj, body) {
+  const subjEncoded = '=?UTF-8?B?' + toBase64UTF8(subj) + '?=';
+  const bodyEncoded = toBase64UTF8(body);
+  const lines = [
+    `To: ${to}`,
+    `Subject: ${subjEncoded}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    bodyEncoded
+  ];
+  // URL-safe base64 for the whole RFC2822 message
+  const raw = lines.join('\r\n');
+  const bytes = new TextEncoder().encode(raw);
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 function getDraftKey(id){ return `mf-draft-${id}`; }
