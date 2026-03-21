@@ -585,8 +585,24 @@ function renderMailList(){
   const el=document.getElementById('mail-list-container');
   const list=getFilteredList();
   if(!list.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">${currentMailTab==='unread'?'📭':'⭐'}</div><div class="empty-title">${currentMailTab==='unread'?'未読メールなし':'スターなし'}</div><div class="empty-sub">すべて確認済みです</div></div>`;return;}
-  el.innerHTML=`<div class="mail-list" style="padding:8px 0 12px;">${list.map((m,i)=>{const tags=[];if(m.isUnread)tags.push(`<span class="icon-tag tag-unread">● 未読</span>`);if(m.isStarred)tags.push(`<span class="icon-tag tag-starred">★ スター</span>`);if(accounts.length>1)tags.push(`<span class="icon-tag tag-acct">${esc(m.acct.split('@')[0])}</span>`);return `<div class="mail-card-wrap" data-idx="${i}"><div class="swipe-action ${m.isStarred?'on':''}" id="swipe-act-${i}">${m.isStarred?'☆':'★'}</div><div class="mail-card-inner"><div class="mail-card ${m.isUnread?'unread':''} ${m.isStarred?'starred':''}" onclick="openMail(${i})"><div class="mail-header"><div class="mail-from">${esc(m.from)}</div><div class="mail-date">${m.date}</div></div><div class="mail-subject">${esc(m.subject)}</div><div class="mail-snippet">${esc(m.snippet)}</div>${tags.length?`<div class="mail-footer">${tags.join('')}</div>`:''}</div></div></div>`;}).join('')}</div>`;
-  // Attach swipe listeners after render
+  el.innerHTML='<div class="mail-list" style="padding:8px 0 12px;">'+list.map(function(m,i){
+    var tags=[];
+    if(m.isUnread)tags.push('<span class="icon-tag tag-unread">&#9679; 未読</span>');
+    if(m.isStarred)tags.push('<span class="icon-tag tag-starred">&#9733; スター</span>');
+    if(accounts.length>1)tags.push('<span class="icon-tag tag-acct">'+esc(m.acct.split('@')[0])+'</span>');
+    var starIcon=m.isStarred?'&#9734;':'&#9733;';
+    var starCls=m.isStarred?'swipe-action on':'swipe-action';
+    var cardCls='mail-card'+(m.isUnread?' unread':'')+(m.isStarred?' starred':'');
+    return '<div class="mail-card-wrap" data-idx="'+i+'">'
+      +'<div class="'+starCls+'" id="swipe-act-'+i+'">'+starIcon+'</div>'
+      +'<div class="mail-card-inner">'
+      +'<div class="'+cardCls+'" onclick="openMail('+i+')">'
+      +'<div class="mail-header"><div class="mail-from">'+esc(m.from)+'</div><div class="mail-date">'+m.date+'</div></div>'
+      +'<div class="mail-subject">'+esc(m.subject)+'</div>'
+      +'<div class="mail-snippet">'+esc(m.snippet)+'</div>'
+      +(tags.length?'<div class="mail-footer">'+tags.join('')+'</div>':'')
+      +'</div></div></div>';
+  }).join('')+'</div>';
   setupSwipeListeners();
 }
 function updateBadges(){const u=emails.unread.filter(m=>m.isUnread).length;document.getElementById('unread-count').textContent=`✉️ ${u}`;document.getElementById('star-count').textContent=`★ ${emails.starred.length}`;document.getElementById('nav-mail').classList.toggle('has-dot',u>0);}
@@ -636,7 +652,7 @@ async function toggleStar(){if(!currentMail)return;const acct=getAcct(currentMai
 // ── Reply ──
 function toggleReply(){const panel=document.getElementById('reply-panel');if(panel.classList.contains('open')){closeReply();return;}panel.classList.add('open');document.getElementById('reply-to-addr').textContent=currentMail?.fromEmail||currentMail?.from||'—';const orig=(currentMail?.body||currentMail?.snippet||'').trim();const qb=document.getElementById('reply-quote-block');if(orig){document.getElementById('reply-quote-text').textContent=orig.slice(0,300)+(orig.length>300?'…':'');qb.style.display='';}else qb.style.display='none';const ta=document.getElementById('reply-textarea');const saved=loadDraft(currentMail?.id||'');if(saved){ta.value=saved;showDraftInd(true);}else{const sig=signature.trim();ta.value=sig?`\n\n--\n${sig}`:''; }setTimeout(()=>{ta.focus();ta.setSelectionRange(0,0);ta.scrollTop=0;},360);ta.oninput=()=>{clearTimeout(draftTimer);draftTimer=setTimeout(()=>{saveDraft(currentMail?.id||'',ta.value);showDraftInd(true);},800);};}
 function closeReply(){const ta=document.getElementById('reply-textarea');if(currentMail?.id&&ta.value.trim())saveDraft(currentMail.id,ta.value);document.getElementById('reply-panel').classList.remove('open');ta.oninput=null;showDraftInd(false);}
-async function sendReply(){if(!currentMail)return;const ta=document.getElementById('reply-textarea'),body=ta.value.trim();if(!body){showToast('⚠ 本文を入力してください');return;}const acct=getAcct(currentMail.acct);if(!acct){showToast('⚠ アカウント不明');return;}const btn=document.getElementById('reply-send-btn'),lbl=document.getElementById('reply-send-label'),spn=document.getElementById('reply-spinner');btn.disabled=true;lbl.style.display='none';spn.style.display='block';try{const to=currentMail.fromEmail||currentMail.from;const subj=currentMail.subject?.startsWith('Re:')?currentMail.subject:`Re: ${currentMail.subject||''}`;const orig=(currentMail.body||currentMail.snippet||'').trim();const full=`${body}${orig?`\n\n---\n${currentMail.from} wrote:\n${orig}`:''}`;await gmailPost(acct,'messages/send',{raw:buildRaw(to,subj,full),threadId:currentMail.threadId||undefined});clearDraft(currentMail.id);await gmailPost(acct,`messages/${currentMail.id}/modify`,{removeLabelIds:['UNREAD']});emails.unread=emails.unread.map(m=>m.id===currentMail.id?{...m,isUnread:false}:m);renderMailList();updateBadges();closeReply();closeDetail();showToast('✉ 返信を送信しました');}catch(e){showToast('⚠ 送信失敗: '+e.message);}finally{btn.disabled=false;lbl.style.display='';spn.style.display='none';}}
+async function sendReply(){if(!currentMail)return;const ta=document.getElementById('reply-textarea'),body=ta.value.trim();if(!body){showToast('⚠ 本文を入力してください');return;}const acct=getAcct(currentMail.acct);if(!acct){showToast('⚠ アカウント不明');return;}const btn=document.getElementById('reply-send-btn'),lbl=document.getElementById('reply-send-label'),spn=document.getElementById('reply-spinner');btn.disabled=true;lbl.style.display='none';spn.style.display='block';try{const to=currentMail.fromEmail||currentMail.from;const subj=currentMail.subject?.startsWith('Re:')?currentMail.subject:`Re: ${currentMail.subject||''}`;const orig=(currentMail.body||currentMail.snippet||'').trim();const full=body+(orig?'\n\n---\n'+currentMail.from+' wrote:\n'+orig:'');await gmailPost(acct,'messages/send',{raw:buildRaw(to,subj,full),threadId:currentMail.threadId||undefined});clearDraft(currentMail.id);await gmailPost(acct,`messages/${currentMail.id}/modify`,{removeLabelIds:['UNREAD']});emails.unread=emails.unread.map(m=>m.id===currentMail.id?{...m,isUnread:false}:m);renderMailList();updateBadges();closeReply();closeDetail();showToast('✉ 返信を送信しました');}catch(e){showToast('⚠ 送信失敗: '+e.message);}finally{btn.disabled=false;lbl.style.display='';spn.style.display='none';}}
 function toBase64UTF8(str){const bytes=new TextEncoder().encode(str);let b='';for(const x of bytes)b+=String.fromCharCode(x);return btoa(b);}
 function buildRaw(to,subj,body){const lines=[`To: ${to}`,`Subject: =?UTF-8?B?${toBase64UTF8(subj)}?=`,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',toBase64UTF8(body)];const raw=lines.join('\r\n');const bytes=new TextEncoder().encode(raw);let b='';for(const x of bytes)b+=String.fromCharCode(x);return btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 function getDraftKey(id){return `mf-draft-${id}`;}
@@ -745,17 +761,18 @@ function renderTodos(){
     const addH=addingToGroup===g.id?buildAddForm(g.id):'';
     const dropZone=`<div class="group-drop-zone" id="dz-${g.id}" ondragover="onDZOver(event,'${g.id}')" ondragleave="onDZLeave('${g.id}')" ondrop="onDZDrop(event,'${g.id}')">ここにドロップ</div>`;
 
-    return `<div class="todo-group" data-gid="${g.id}">
-      <div class="todo-group-header">
-        <span class="todo-group-name">${esc(g.name)}</span>
-        <span class="todo-group-count">${pc}件</span>
-        <button class="todo-group-btn" onclick="startGroupAdd('${g.id}')" title="このグループに追加">＋</button>
-        ${!isDefault?`<button class="todo-group-btn del" onclick="deleteGroup('${g.id}')" title="グループを削除">🗑</button>`:''}
-      </div>
-      ${dropZone}
-      ${addH}
-      <div data-items-gid="${g.id}">${visible.map(item=>renderItem(item,g.id)).join('')}</div>
-    </div>`;
+    var delBtn=g.id!=='default'?'<button class="todo-group-btn del" onclick="deleteGroup(''+g.id+'')" title="グループを削除">🗑</button>':'';
+    return '<div class="todo-group" data-gid="'+g.id+'">'
+      +'<div class="todo-group-header">'
+      +'<span class="todo-group-name">'+esc(g.name)+'</span>'
+      +'<span class="todo-group-count">'+pc+'件</span>'
+      +'<button class="todo-group-btn" onclick="startGroupAdd(''+g.id+'')" title="このグループに追加">＋</button>'
+      +delBtn
+      +'</div>'
+      +dropZone
+      +addH
+      +'<div data-items-gid="'+g.id+'">'+visible.map(function(item){return renderItem(item,g.id);}).join('')+'</div>'
+      +'</div>';
   }).join('');
 
   if(addingToGroup)setTimeout(()=>document.getElementById(`gadd-text-${addingToGroup}`)?.focus(),50);
@@ -786,28 +803,32 @@ function getSelectedPrio(containerId){
 }
 
 function renderItem(item,gid){
-  const prio=item.priority||'none',prioLbl=PLABELS[prio];
-  const prioClass=prio!=='none'?`todo-priority ${prio}`:'';
+  const prio=item.priority||'none';
+  const prioLbl=PLABELS[prio];
+  const prioClass=prio!=='none'?'todo-priority '+prio:'';
   let datePart='';
-  if(item.dueDate){const d=new Date(`${item.dueDate}T${item.dueTime||'00:00'}`);const over=!item.done&&d<new Date();const fmt=item.dueTime?d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'})+' '+item.dueTime:d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});datePart=`<span class="todo-date-tag ${over?'overdue':''}">${fmt}</span>`;}
+  if(item.dueDate){
+    const d=new Date(item.dueDate+'T'+(item.dueTime||'00:00'));
+    const over=!item.done&&d<new Date();
+    const fmt=item.dueTime?d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'})+' '+item.dueTime:d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});
+    datePart='<span class="todo-date-tag'+(over?' overdue':'')+'">'+fmt+'</span>';
+  }
   if(editingId===item.id)return renderEditPanel(item,gid);
-  return `<div class="todo-item ${item.done?'done':''}" draggable="true" data-iid="${item.id}" data-gid="${gid}"
-    ondragstart="onItemDragStart(event,'${item.id}','${gid}')"
-    ondragover="onItemDragOver(event,'${item.id}','${gid}')"
-    ondragleave="onItemDragLeave(event)"
-    ondrop="onItemDrop(event,'${item.id}','${gid}')"
-    ondragend="onDragEnd()">
-    <span class="drag-handle">⠿</span>
-    <button class="todo-check" onclick="toggleItem('${gid}','${item.id}')"><span class="todo-check-icon">✓</span></button>
-    <div class="todo-body">
-      <div class="todo-text">${esc(item.text)}</div>
-      ${(prioLbl||datePart)?`<div class="todo-meta">${prioLbl?`<span class="${prioClass}">${prioLbl}</span>`:''}${datePart}</div>`:''}
-    </div>
-    <div class="todo-actions">
-      <button class="todo-action-btn" onclick="startEdit('${item.id}')">✏️</button>
-      <button class="todo-action-btn todo-del-btn" onclick="deleteItem('${gid}','${item.id}')">✕</button>
-    </div>
-  </div>`;
+  const metaHtml=(prioLbl||datePart)?'<div class="todo-meta">'+(prioLbl?'<span class="'+prioClass+'">'+prioLbl+'</span>':'')+datePart+'</div>':'';
+  const doneCls=item.done?' done':'';
+  return '<div class="todo-item'+doneCls+'" draggable="true" data-iid="'+item.id+'" data-gid="'+gid+'"'
+    +' ondragstart="onItemDragStart(event,''+item.id+'',''+gid+'')"'
+    +' ondragover="onItemDragOver(event,''+item.id+'',''+gid+'')"'
+    +' ondragleave="onItemDragLeave(event)"'
+    +' ondrop="onItemDrop(event,''+item.id+'',''+gid+'')"'
+    +' ondragend="onDragEnd()">'
+    +'<span class="drag-handle">&#8943;</span>'
+    +'<button class="todo-check" onclick="toggleItem(''+gid+'',''+item.id+'')"><span class="todo-check-icon">&#10003;</span></button>'
+    +'<div class="todo-body"><div class="todo-text">'+esc(item.text)+'</div>'+metaHtml+'</div>'
+    +'<div class="todo-actions">'
+    +'<button class="todo-action-btn" onclick="startEdit(''+item.id+'')">&#9998;</button>'
+    +'<button class="todo-action-btn todo-del-btn" onclick="deleteItem(''+gid+'',''+item.id+'')">&#10005;</button>'
+    +'</div></div>';
 }
 
 function renderEditPanel(item,gid){
