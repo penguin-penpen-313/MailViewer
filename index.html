@@ -429,7 +429,7 @@
 // ══════════════════════════════════
 // STATE
 // ══════════════════════════════════
-const SCOPES = 'https://www.googleapis.com/auth/gmail.modify';
+const SCOPES = 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
 let accounts = [];
 let activeAcctFilter = 'all';
 let emails = { unread: [], starred: [] };
@@ -520,15 +520,18 @@ function renderSavedAccounts(saved) {
   const list = document.getElementById('saved-accts-list');
   if (!saved.length) { wrap.style.display = 'none'; return; }
   wrap.style.display = '';
-  list.innerHTML = saved.map(a => `
-    <div class="account-chip" onclick="quickLogin('${esc(a.email)}','${esc(a.clientId)}')">
-      <div class="account-avatar">${(a.displayName || a.email)[0].toUpperCase()}</div>
+  list.innerHTML = saved.map(a => {
+    const name = (a.displayName || '').trim() || (a.email || '').split('@')[0] || 'User';
+    const initial = name[0].toUpperCase();
+    return `<div class="account-chip" onclick="quickLogin('${esc(a.email)}','${esc(a.clientId)}')">
+      <div class="account-avatar">${initial}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.displayName || a.email.split('@')[0])}</div>
-        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.email)}</div>
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.email || '')}</div>
       </div>
       <button class="account-remove" onclick="event.stopPropagation();removeSaved('${esc(a.email)}')">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function removeSaved(email) {
@@ -550,27 +553,58 @@ async function startLogin() {
   await loadGis();
 
   const tc = google.accounts.oauth2.initTokenClient({
-    client_id: clientId, scope: SCOPES,
+    client_id: clientId,
+    scope: SCOPES,
+    include_granted_scopes: true,
     callback: async resp => {
       if (resp.error) { showToast('❌ 認証エラー: ' + resp.error); return; }
       const token = resp.access_token;
-      let email = '?', displayName = '';
-      try {
-        const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const info = await r.json();
-        email = info.email || '?';
-        // name may be encoded — use as-is since it comes as JSON (already UTF-8)
-        displayName = info.name || email.split('@')[0];
-      } catch {}
+      let email = '', displayName = '';
+
+      // まず id_token から取得を試みる（ネットワーク不要・最も確実）
+      if (resp.id_token) {
+        try {
+          const parts = resp.id_token.split('.');
+          const payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+          email = payload.email || '';
+          displayName = payload.name || '';
+        } catch {}
+      }
+
+      // id_token がない or 取れなかった場合は userinfo v3 を呼ぶ
+      if (!email) {
+        try {
+          const r = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const info = await r.json();
+          email = (info.email || '').trim();
+          displayName = (info.name || '').trim();
+        } catch {}
+      }
+
+      // それでも取れなければ v2 を試す
+      if (!email) {
+        try {
+          const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const info = await r.json();
+          email = (info.email || '').trim();
+          displayName = (info.name || '').trim();
+        } catch {}
+      }
+
+      // displayName が空ならメールのローカル部分を使う
+      if (!displayName) displayName = email.split('@')[0] || 'User';
+      if (!email) { showToast('⚠ アカウント情報を取得できませんでした'); return; }
 
       if (accounts.find(a => a.email === email)) {
         accounts = accounts.map(a => a.email === email ? { ...a, token, displayName } : a);
       } else {
         accounts.push({ email, clientId, token, displayName });
       }
-      const toSave = accounts.map(a => ({ email: a.email, clientId: a.clientId, displayName: a.displayName || '' }));
+      const toSave = accounts.map(a => ({ email: a.email, clientId: a.clientId, displayName: a.displayName || a.email.split('@')[0] }));
       localStorage.setItem('mf-accounts', JSON.stringify(toSave));
 
       showApp();
