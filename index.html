@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MailFocus">
   <link rel="manifest" href="manifest.json">
-  <title>MailFocus v1.4</title>
+  <title>MailFocus v1.5</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -96,6 +96,12 @@
     .tag-unread{background:rgba(52,211,153,0.1);color:var(--unread);}
     .tag-starred{background:rgba(245,158,11,0.1);color:var(--star);}
     .tag-acct{background:var(--surface2);color:var(--text3);border:1px solid var(--border2);}
+    /* Swipe actions */
+    .mail-card-wrap{position:relative;overflow:hidden;border-radius:var(--r);margin-bottom:6px;}
+    .swipe-action{position:absolute;right:0;top:0;bottom:0;width:72px;display:flex;align-items:center;justify-content:center;background:rgba(245,158,11,0.85);font-size:20px;border-radius:0 var(--r) var(--r) 0;transform:translateX(100%);transition:transform 0.2s;pointer-events:none;}
+    .swipe-action.on{background:rgba(245,158,11,0.4);}
+    .mail-card-inner{transform:translateX(0);transition:transform 0.2s;background:var(--surface);border-radius:var(--r);will-change:transform;}
+    .mail-card-inner.swiped{transform:translateX(-72px);}
     .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;color:var(--text3);text-align:center;flex:1;}
     .empty-icon{font-size:38px;margin-bottom:9px;}
     .empty-title{font-size:14px;font-weight:700;color:var(--text2);margin-bottom:4px;}
@@ -109,7 +115,7 @@
     /* Detail Overlay */
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.3s;backdrop-filter:blur(4px);}
     .overlay.open{opacity:1;pointer-events:all;}
-    .detail-sheet{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;border-top:1px solid var(--border2);width:100%;max-width:520px;margin:0 auto;max-height:92dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);}
+    .detail-sheet{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;border-top:1px solid var(--border2);width:100%;max-width:520px;margin:0 auto;max-height:97dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);}
     .overlay.open .detail-sheet{transform:translateY(0);}
     .sheet-handle{width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:10px auto 0;flex-shrink:0;}
     .sheet-header{padding:13px 16px 11px;border-bottom:1px solid var(--border);flex-shrink:0;}
@@ -121,7 +127,7 @@
     .sheet-body{flex:1;overflow-y:auto;padding:13px 16px;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap;word-break:break-word;}
     .sheet-body::-webkit-scrollbar{width:3px;}
     .sheet-body::-webkit-scrollbar-thumb{background:var(--surface3);}
-    .sheet-body-html{flex:1;overflow:hidden;border:none;background:white;}
+    .sheet-body-html{flex:1;overflow:hidden;border:none;background:white;min-height:200px;width:100%;display:block;}
     .body-toggle-bar{display:flex;gap:5px;padding:6px 16px;border-bottom:1px solid var(--border);flex-shrink:0;align-items:center;}
     .body-toggle-btn{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all 0.2s;}
     .body-toggle-btn.active{border-color:var(--accent);color:var(--accent2);background:rgba(124,106,247,0.1);}
@@ -273,7 +279,7 @@
 <!-- Login -->
 <div id="login-screen">
   <div class="login-logo">MailFocus</div>
-  <div class="login-ver">v1.4</div>
+  <div class="login-ver">v1.5</div>
   <div id="saved-accts-wrap" class="saved-accts-wrap" style="display:none">
     <div class="saved-accts-label">保存済みアカウント</div>
     <div id="saved-accts-list"></div>
@@ -293,7 +299,7 @@
 <!-- Main App -->
 <div id="app" style="display:none">
   <header>
-    <div class="logo-wrap"><div class="logo">MailFocus</div><span class="version-badge">v1.4</span></div>
+    <div class="logo-wrap"><div class="logo">MailFocus</div><span class="version-badge">v1.5</span></div>
     <div class="header-right">
       <span class="badge badge-unread" id="unread-count">…</span>
       <span class="badge badge-star" id="star-count">…</span>
@@ -303,7 +309,6 @@
       </button>
     </div>
   </header>
-  <div id="accounts-bar" style="display:none"></div>
   <div id="mail-tabs-bar" style="display:none"><div class="account-filter" id="account-filter"></div></div>
   <div class="main-content">
     <div class="scroll-area" id="main-scroll">
@@ -351,7 +356,6 @@
     <div class="body-toggle-bar">
       <button class="body-toggle-btn active" id="toggle-plain" onclick="setBodyMode('plain')">テキスト</button>
       <button class="body-toggle-btn" id="toggle-html" onclick="setBodyMode('html')">HTML</button>
-      <button class="open-gmail-btn" onclick="openInGmail()">Gmailで開く ↗</button>
     </div>
     <div class="sheet-body" id="detail-body"></div>
     <iframe class="sheet-body-html" id="detail-body-html" sandbox="allow-same-origin" style="display:none;height:300px;"></iframe>
@@ -521,7 +525,7 @@ async function startLogin(){
   tc.requestAccessToken({prompt:'consent'});
 }
 
-function showApp(){document.getElementById('login-screen').style.display='none';document.getElementById('app').style.display='';updateAccountsBar();}
+function showApp(){document.getElementById('login-screen').style.display='none';document.getElementById('app').style.display='';}
 function showLoginForm(){document.getElementById('login-screen').style.display='';document.getElementById('app').style.display='none';renderSavedAccounts(loadSavedTokens());}
 function logoutAll(){accounts=[];emails={unread:[],starred:[]};saveTokens([]);closeSettings();document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='';renderSavedAccounts([]);showToast('👋 ログアウトしました');}
 function logoutAccount(email){
@@ -529,12 +533,9 @@ function logoutAccount(email){
   saveTokens(loadSavedTokens().filter(a=>a.email!==email));
   if(!accounts.length){logoutAll();return;}
   emails.unread=emails.unread.filter(m=>m.acct!==email);emails.starred=emails.starred.filter(m=>m.acct!==email);
-  renderMailList();updateBadges();updateAccountsBar();openSettings();showToast('👋 '+email+' をログアウト');
+  renderMailList();updateBadges();openSettings();showToast('👋 '+email+' をログアウト');
 }
 
-function updateAccountsBar(){
-  const bar=document.getElementById('accounts-bar');
-  if(accounts.length<=1){bar.style.display='none';return;}
   bar.style.display='flex';
   bar.innerHTML=accounts.map(a=>{const n=a.displayName||a.email.split('@')[0];return `<div class="acct-pill"><div class="acct-pill-avatar">${n[0].toUpperCase()}</div><span class="acct-pill-name">${esc(n)}</span></div>`;}).join('');
 }
@@ -584,16 +585,45 @@ function renderMailList(){
   const el=document.getElementById('mail-list-container');
   const list=getFilteredList();
   if(!list.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">${currentMailTab==='unread'?'📭':'⭐'}</div><div class="empty-title">${currentMailTab==='unread'?'未読メールなし':'スターなし'}</div><div class="empty-sub">すべて確認済みです</div></div>`;return;}
-  el.innerHTML=`<div class="mail-list">${list.map((m,i)=>{const tags=[];if(m.isUnread)tags.push(`<span class="icon-tag tag-unread">● 未読</span>`);if(m.isStarred)tags.push(`<span class="icon-tag tag-starred">★ スター</span>`);if(accounts.length>1)tags.push(`<span class="icon-tag tag-acct">${esc(m.acct.split('@')[0])}</span>`);return `<div class="mail-card ${m.isUnread?'unread':''} ${m.isStarred?'starred':''}" onclick="openMail(${i})"><div class="mail-header"><div class="mail-from">${esc(m.from)}</div><div class="mail-date">${m.date}</div></div><div class="mail-subject">${esc(m.subject)}</div><div class="mail-snippet">${esc(m.snippet)}</div>${tags.length?`<div class="mail-footer">${tags.join('')}</div>`:''}</div>`;}).join('')}</div>`;
+  el.innerHTML=`<div class="mail-list" style="padding:8px 0 12px;">${list.map((m,i)=>{const tags=[];if(m.isUnread)tags.push(`<span class="icon-tag tag-unread">● 未読</span>`);if(m.isStarred)tags.push(`<span class="icon-tag tag-starred">★ スター</span>`);if(accounts.length>1)tags.push(`<span class="icon-tag tag-acct">${esc(m.acct.split('@')[0])}</span>`);return `<div class="mail-card-wrap" data-idx="${i}"><div class="swipe-action ${m.isStarred?'on':''}" id="swipe-act-${i}">${m.isStarred?'☆':'★'}</div><div class="mail-card-inner"><div class="mail-card ${m.isUnread?'unread':''} ${m.isStarred?'starred':''}" onclick="openMail(${i})"><div class="mail-header"><div class="mail-from">${esc(m.from)}</div><div class="mail-date">${m.date}</div></div><div class="mail-subject">${esc(m.subject)}</div><div class="mail-snippet">${esc(m.snippet)}</div>${tags.length?`<div class="mail-footer">${tags.join('')}</div>`:''}</div></div></div>`;}).join('')}</div>`;
+  // Attach swipe listeners after render
+  setupSwipeListeners();
 }
 function updateBadges(){const u=emails.unread.filter(m=>m.isUnread).length;document.getElementById('unread-count').textContent=`✉️ ${u}`;document.getElementById('star-count').textContent=`★ ${emails.starred.length}`;document.getElementById('nav-mail').classList.toggle('has-dot',u>0);}
 function switchMailTab(tab){currentMailTab=tab;['unread','starred'].forEach(t=>document.getElementById(`btab-${t}`).classList.toggle('active',t===tab));renderMailList();}
 
 // ── Mail Detail ──
-function openMail(idx){const list=getFilteredList();currentMail={...list[idx],_idx:idx};document.getElementById('detail-subject').textContent=currentMail.subject;document.getElementById('detail-from').textContent=currentMail.from;document.getElementById('detail-to').textContent=currentMail.to;document.getElementById('detail-date').textContent=currentMail.date;document.getElementById('detail-acct').textContent=currentMail.acct;bodyMode='plain';setBodyMode('plain');updateStarBtn(currentMail.isStarred);document.getElementById('detail-overlay').classList.add('open');document.body.style.overflow='hidden';}
+function openMail(idx){const list=getFilteredList();currentMail={...list[idx],_idx:idx};document.getElementById('detail-subject').textContent=currentMail.subject;document.getElementById('detail-from').textContent=currentMail.from;document.getElementById('detail-to').textContent=currentMail.to;document.getElementById('detail-date').textContent=currentMail.date;document.getElementById('detail-acct').textContent=currentMail.acct;bodyMode=currentMail.htmlBody?'html':'plain';setBodyMode(bodyMode);updateStarBtn(currentMail.isStarred);document.getElementById('detail-overlay').classList.add('open');document.body.style.overflow='hidden';}
 
-function setBodyMode(mode){bodyMode=mode;document.getElementById('toggle-plain').classList.toggle('active',mode==='plain');document.getElementById('toggle-html').classList.toggle('active',mode==='html');const pe=document.getElementById('detail-body'),he=document.getElementById('detail-body-html');if(mode==='plain'){pe.style.display='';he.style.display='none';pe.innerHTML=linkify(currentMail?.body||currentMail?.snippet||'(本文なし)');}else{pe.style.display='none';he.style.display='';const html=currentMail?.htmlBody||'';if(html){he.srcdoc=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:sans-serif;font-size:14px;line-height:1.6;padding:12px;color:#111;word-break:break-word;max-width:100%;}img{max-width:100%;height:auto;}a{color:#7c6af7;}</style></head><body>${html}</body></html>`;he.style.height='400px';}else{setBodyMode('plain');showToast('HTMLコンテンツがありません');}}}
-function linkify(text){const safe=esc(text);return safe.replace(/(https?:\/\/[^\s&lt;&gt;&quot;]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:var(--accent2);word-break:break-all;">$1</a>');}
+function setBodyMode(mode){bodyMode=mode;document.getElementById('toggle-plain').classList.toggle('active',mode==='plain');document.getElementById('toggle-html').classList.toggle('active',mode==='html');const pe=document.getElementById('detail-body'),he=document.getElementById('detail-body-html');if(mode==='plain'){pe.style.display='';he.style.display='none';pe.innerHTML=linkify(currentMail?.body||currentMail?.snippet||'(本文なし)');}else{pe.style.display='none';he.style.display='';const html=currentMail?.htmlBody||'';if(html){he.srcdoc=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:sans-serif;font-size:14px;line-height:1.6;padding:12px;color:#111;word-break:break-word;max-width:100%;margin:0;}img{max-width:100%;height:auto;}a{color:#7c6af7;}</style></head><body>${html}</body></html>`;
+      // Let iframe grow with content using ResizeObserver on contentDocument
+      he.style.height='100%';
+      he.onload=()=>{
+        try{
+          const adjust=()=>{const h=he.contentDocument?.body?.scrollHeight;if(h)he.style.height=h+'px';};
+          adjust();
+          new ResizeObserver(adjust).observe(he.contentDocument.body);
+        }catch{}
+      };}else{setBodyMode('plain');showToast('HTMLコンテンツがありません');}}}
+function linkify(text){
+  // Split text into lines, escape each, then linkify URLs
+  return text.split('\n').map(line=>{
+    // Escape HTML first
+    const parts=[];
+    let rest=line;
+    const urlRe=/(https?:\/\/[^\s<>"']+)/g;
+    let m,last=0;
+    urlRe.lastIndex=0;
+    while((m=urlRe.exec(rest))!==null){
+      if(m.index>last)parts.push(esc(rest.slice(last,m.index)));
+      const url=m[1];
+      parts.push('<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" style="color:var(--accent2);word-break:break-all;text-decoration:underline;">'+esc(url)+'</a>');
+      last=m.index+url.length;
+    }
+    if(last<rest.length)parts.push(esc(rest.slice(last)));
+    return parts.join('');
+  }).join('<br>');
+}
 function openInGmail(){if(!currentMail)return;window.open(`https://mail.google.com/mail/u/0/#inbox/${currentMail.threadId||currentMail.id}`,'_blank');}
 function updateStarBtn(isStarred){const btn=document.getElementById('star-action-btn');if(!btn)return;btn.textContent='★ スター';btn.className='action-btn btn-star'+(isStarred?' on':'');}
 function closeDetail(){const panel=document.getElementById('reply-panel'),ta=document.getElementById('reply-textarea');if(panel.classList.contains('open')&&currentMail?.id&&ta.value.trim())saveDraft(currentMail.id,ta.value);panel.classList.remove('open');ta.value='';ta.oninput=null;showDraftInd(false);document.getElementById('detail-overlay').classList.remove('open');document.body.style.overflow='';currentMail=null;}
@@ -614,6 +644,68 @@ function loadDraft(id){try{return localStorage.getItem(getDraftKey(id))||'';}cat
 function saveDraft(id,t){try{t.trim()?localStorage.setItem(getDraftKey(id),t):localStorage.removeItem(getDraftKey(id));}catch{}}
 function clearDraft(id){try{localStorage.removeItem(getDraftKey(id));}catch{}}
 function showDraftInd(v){document.getElementById('draft-indicator').classList.toggle('visible',v);}
+
+
+// ── Swipe to star ──
+function setupSwipeListeners(){
+  document.querySelectorAll('.mail-card-wrap').forEach(wrap=>{
+    const inner=wrap.querySelector('.mail-card-inner');
+    const idx=parseInt(wrap.dataset.idx);
+    let startX=0,startY=0,dragging=false,swiped=false;
+    const onStart=e=>{
+      const t=e.touches?e.touches[0]:e;
+      startX=t.clientX;startY=t.clientY;dragging=true;swiped=false;
+    };
+    const onMove=e=>{
+      if(!dragging)return;
+      const t=e.touches?e.touches[0]:e;
+      const dx=t.clientX-startX,dy=t.clientY-startY;
+      if(Math.abs(dy)>Math.abs(dx)&&!swiped)return; // vertical scroll
+      if(Math.abs(dx)>8)e.preventDefault();
+      const x=Math.max(-80,Math.min(0,dx));
+      inner.style.transition='none';
+      inner.style.transform=`translateX(${x}px)`;
+    };
+    const onEnd=e=>{
+      if(!dragging)return;dragging=false;
+      const t=e.changedTouches?e.changedTouches[0]:e;
+      const dx=t.clientX-startX;
+      inner.style.transition='';
+      if(dx<-50){
+        inner.style.transform='translateX(-72px)';
+        inner.classList.add('swiped');
+        // Execute star toggle after short delay for UX
+        setTimeout(()=>{
+          swipeToggleStar(idx);
+          inner.style.transform='';
+          inner.classList.remove('swiped');
+        },400);
+      }else{
+        inner.style.transform='';
+        inner.classList.remove('swiped');
+      }
+    };
+    wrap.addEventListener('touchstart',onStart,{passive:true});
+    wrap.addEventListener('touchmove',onMove,{passive:false});
+    wrap.addEventListener('touchend',onEnd,{passive:true});
+  });
+}
+
+async function swipeToggleStar(idx){
+  const list=getFilteredList();
+  const m=list[idx];if(!m)return;
+  const acct=getAcct(m.acct);if(!acct)return;
+  const addStar=!m.isStarred;
+  try{
+    await gmailPost(acct,`messages/${m.id}/modify`,addStar?{addLabelIds:['STARRED']}:{removeLabelIds:['STARRED']});
+    emails.unread=emails.unread.map(x=>x.id===m.id?{...x,isStarred:addStar}:x);
+    emails.starred=emails.starred.map(x=>x.id===m.id?{...x,isStarred:addStar}:x);
+    if(addStar&&!emails.starred.find(x=>x.id===m.id))emails.starred.unshift({...m,isStarred:true});
+    else if(!addStar)emails.starred=emails.starred.filter(x=>x.id!==m.id);
+    renderMailList();updateBadges();
+    showToast(addStar?'★ スターを付けました':'☆ スターを外しました');
+  }catch(e){showToast('⚠ '+e.message);}
+}
 
 function switchView(view){['mail','todo'].forEach(v=>{document.getElementById(`view-${v}`).classList.toggle('active',v===view);document.getElementById(`nav-${v}`).classList.toggle('active',v===view);});document.getElementById('bottom-mail-tabs').classList.toggle('visible',view==='mail');if(view==='mail')renderAcctFilter();}
 
