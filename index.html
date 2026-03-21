@@ -8,10 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MailFocus">
   <link rel="manifest" href="manifest.json">
-  <title>MailFocus v1.1</title>
+  <title>MailFocus v1.3</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
-    :root {
+    :root{
       --bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--surface3:#22223a;
       --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
       --accent:#7c6af7;--accent2:#a78bfa;--accent-glow:rgba(124,106,247,0.3);
@@ -19,14 +19,30 @@
       --p1:#f87171;--p2:#fb923c;--p3:#fbbf24;
       --text:#e8e8f0;--text2:#9090a8;--text3:#5a5a78;
       --font:'Syne',sans-serif;--mono:'DM Mono',monospace;--r:12px;--rl:20px;
+      --safe-top:env(safe-area-inset-top);
+      --safe-bot:env(safe-area-inset-bottom);
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden;}
     button{font-family:var(--font);}
-    #app{display:grid;grid-template-rows:auto 1fr auto;height:100dvh;max-width:520px;margin:0 auto;}
+    /* zoom防止 */
+    input,textarea,select{font-size:16px !important;}
+
+    /* App shell */
+    #app{
+      display:flex;flex-direction:column;
+      height:100dvh;max-width:520px;margin:0 auto;
+      padding-top:env(safe-area-inset-top);
+    }
 
     /* Login */
-    #login-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;padding:32px 20px;background-image:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(124,106,247,0.12) 0%,transparent 70%);}
+    #login-screen{
+      position:fixed;inset:0;background:var(--bg);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      z-index:500;padding:calc(32px + env(safe-area-inset-top)) 20px calc(32px + env(safe-area-inset-bottom));
+      background-image:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(124,106,247,0.12) 0%,transparent 70%);
+      overflow-y:auto;
+    }
     .login-logo{font-size:30px;font-weight:800;background:linear-gradient(135deg,var(--accent2),#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px;}
     .login-ver{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:28px;}
     .saved-accts-wrap{width:100%;max-width:360px;margin-bottom:14px;}
@@ -34,23 +50,18 @@
     .account-chip{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:9px 13px;margin-bottom:5px;cursor:pointer;transition:all 0.2s;}
     .account-chip:hover{border-color:var(--accent);}
     .account-avatar{width:26px;height:26px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0;}
-    .account-email{font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .account-remove{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:3px;transition:color 0.2s;}
     .account-remove:hover{color:var(--danger);}
     .login-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--rl);padding:20px 18px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:13px;}
     .login-title{font-size:16px;font-weight:700;}
     .login-desc{font-size:12px;color:var(--text2);line-height:1.6;}
-    .field-label{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px;}
-    .text-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:9px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color 0.2s;}
-    .text-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
-    .text-input::placeholder{color:var(--text3);}
     .google-btn{display:flex;align-items:center;justify-content:center;gap:9px;background:white;border:none;border-radius:var(--r);padding:12px;font-size:13px;font-weight:700;color:#1f1f1f;cursor:pointer;transition:all 0.2s;width:100%;}
     .google-btn:hover{background:#f0f0f0;transform:translateY(-1px);}
     .login-hint{font-size:11px;color:var(--text3);font-family:var(--mono);text-align:center;}
     .login-hint a{color:var(--accent2);cursor:pointer;}
 
     /* Header */
-    header{padding:14px 14px 0;display:flex;align-items:center;gap:6px;flex-shrink:0;}
+    header{padding:12px 14px 0;display:flex;align-items:center;gap:6px;flex-shrink:0;}
     .logo-wrap{display:flex;align-items:baseline;gap:5px;}
     .logo{font-size:19px;font-weight:800;background:linear-gradient(135deg,var(--accent2),#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
     .version-badge{font-family:var(--mono);font-size:9px;color:var(--text3);background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;}
@@ -62,23 +73,37 @@
     .icon-btn:hover{background:var(--surface2);color:var(--text);}
     .icon-btn.spinning svg{animation:spin 1s linear infinite;}
 
-    /* Mail Tabs */
-    .mail-tabs{display:flex;gap:4px;padding:10px 14px 8px;}
-    .mail-tab{padding:4px 11px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:4px;white-space:nowrap;}
-    .mail-tab.active{background:var(--surface2);border-color:var(--accent);color:var(--accent2);box-shadow:0 0 10px var(--accent-glow);}
-    .mail-tab:hover:not(.active){background:var(--surface);color:var(--text2);}
-    .account-filter{display:flex;gap:5px;padding:0 14px 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-    .account-filter::-webkit-scrollbar{display:none;}
-    .acct-chip{padding:3px 9px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-size:10px;font-family:var(--mono);cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;}
-    .acct-chip.active{background:var(--surface2);border-color:var(--accent2);color:var(--accent2);}
+    /* Accounts bar */
+    #accounts-bar{
+      display:flex;align-items:center;gap:5px;
+      padding:6px 14px 0;
+      overflow-x:auto;-webkit-overflow-scrolling:touch;
+      flex-shrink:0;
+    }
+    #accounts-bar::-webkit-scrollbar{display:none;}
+    .acct-pill{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:3px 10px 3px 5px;flex-shrink:0;}
+    .acct-pill-avatar{width:18px;height:18px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;flex-shrink:0;}
+    .acct-pill-name{font-size:10px;font-family:var(--mono);color:var(--text2);white-space:nowrap;}
 
-    /* Scroll */
+    /* Main scroll */
+    .main-content{flex:1;min-height:0;display:flex;flex-direction:column;}
     .scroll-area{flex:1;overflow-y:auto;padding:0 14px;-webkit-overflow-scrolling:touch;min-height:0;}
     .scroll-area::-webkit-scrollbar{width:3px;}
     .scroll-area::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
 
+    /* Mail tabs area (inside main-content, above scroll) */
+    #mail-tabs-bar{flex-shrink:0;}
+    .mail-tabs{display:flex;gap:4px;padding:10px 14px 6px;}
+    .mail-tab{padding:4px 11px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+    .mail-tab.active{background:var(--surface2);border-color:var(--accent);color:var(--accent2);box-shadow:0 0 10px var(--accent-glow);}
+    .mail-tab:hover:not(.active){background:var(--surface);color:var(--text2);}
+    .account-filter{display:flex;gap:5px;padding:0 14px 6px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .account-filter::-webkit-scrollbar{display:none;}
+    .acct-chip{padding:3px 9px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-size:10px;font-family:var(--mono);cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;}
+    .acct-chip.active{background:var(--surface2);border-color:var(--accent2);color:var(--accent2);}
+
     /* Mail List */
-    .mail-list{display:flex;flex-direction:column;gap:6px;padding-bottom:10px;}
+    .mail-list{display:flex;flex-direction:column;gap:6px;padding:8px 0 12px;}
     .mail-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
     .mail-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;opacity:0;transition:opacity 0.2s;}
     .mail-card.unread::before{opacity:1;background:var(--unread);}
@@ -97,10 +122,23 @@
     .tag-starred{background:rgba(245,158,11,0.1);color:var(--star);}
     .tag-acct{background:var(--surface2);color:var(--text3);border:1px solid var(--border2);}
 
+    /* Empty state — centered properly */
+    .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;color:var(--text3);text-align:center;flex:1;}
+    .empty-icon{font-size:38px;margin-bottom:9px;}
+    .empty-title{font-size:14px;font-weight:700;color:var(--text2);margin-bottom:4px;}
+    .empty-sub{font-size:12px;line-height:1.6;}
+
+    /* Skeleton */
+    .skeleton{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;margin-bottom:6px;}
+    .skel-line{height:11px;background:linear-gradient(90deg,var(--surface2) 0%,var(--surface3) 50%,var(--surface2) 100%);background-size:200% 100%;border-radius:5px;animation:shimmer 1.5s infinite;margin-bottom:7px;}
+    .skel-line:last-child{margin-bottom:0;width:55%;}
+    @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
     /* Detail Overlay */
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.3s;backdrop-filter:blur(4px);}
     .overlay.open{opacity:1;pointer-events:all;}
-    .detail-sheet{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;border-top:1px solid var(--border2);width:100%;max-width:520px;margin:0 auto;max-height:90dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);}
+    .detail-sheet{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;border-top:1px solid var(--border2);width:100%;max-width:520px;margin:0 auto;max-height:92dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);}
     .overlay.open .detail-sheet{transform:translateY(0);}
     .sheet-handle{width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:10px auto 0;flex-shrink:0;}
     .sheet-header{padding:13px 16px 11px;border-bottom:1px solid var(--border);flex-shrink:0;}
@@ -109,9 +147,19 @@
     .sheet-meta-row{display:flex;gap:7px;font-size:11px;font-family:var(--mono);}
     .meta-label{color:var(--text3);min-width:28px;}
     .meta-value{color:var(--text2);overflow:hidden;text-overflow:ellipsis;}
+    /* body: plain text mode */
     .sheet-body{flex:1;overflow-y:auto;padding:13px 16px;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap;word-break:break-word;}
     .sheet-body::-webkit-scrollbar{width:3px;}
     .sheet-body::-webkit-scrollbar-thumb{background:var(--surface3);}
+    /* body: html mode via iframe */
+    .sheet-body-html{flex:1;overflow:hidden;border:none;background:white;border-radius:0;}
+    /* body toggle */
+    .body-toggle-bar{display:flex;gap:5px;padding:6px 16px;border-bottom:1px solid var(--border);flex-shrink:0;align-items:center;}
+    .body-toggle-btn{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all 0.2s;}
+    .body-toggle-btn.active{border-color:var(--accent);color:var(--accent2);background:rgba(124,106,247,0.1);}
+    .open-gmail-btn{margin-left:auto;font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all 0.2s;}
+    .open-gmail-btn:hover{background:var(--surface2);color:var(--text2);}
+    /* Action buttons */
     .sheet-actions{padding:9px 13px calc(9px + env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;gap:5px;flex-shrink:0;}
     .action-btn{flex:1;padding:10px 4px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;}
     .action-btn:active{transform:scale(0.96);}
@@ -119,6 +167,7 @@
     .btn-read{background:rgba(52,211,153,0.12);border-color:rgba(52,211,153,0.3);color:var(--unread);}
     .btn-star{background:transparent;border-color:var(--border2);color:var(--text3);}
     .btn-star.on{background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.5);color:var(--star);}
+
     /* Reply Panel */
     .reply-panel{border-top:1px solid var(--border2);background:var(--surface2);flex-shrink:0;max-height:0;overflow:hidden;transition:max-height 0.35s cubic-bezier(0.32,0.72,0,1);}
     .reply-panel.open{max-height:460px;}
@@ -129,40 +178,28 @@
     .draft-indicator.visible{display:flex;}
     .reply-quote{background:var(--bg);border-left:3px solid var(--surface3);border-radius:0 6px 6px 0;padding:7px 10px;font-size:11px;color:var(--text3);line-height:1.6;max-height:60px;overflow:hidden;font-family:var(--mono);white-space:pre-wrap;word-break:break-word;}
     .quote-label{font-size:9px;color:var(--text3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
-    .reply-textarea{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;color:var(--text);font-size:13px;line-height:1.6;resize:none;outline:none;height:95px;transition:border-color 0.2s;}
+    .reply-textarea{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;color:var(--text);line-height:1.6;resize:none;outline:none;height:95px;transition:border-color 0.2s;width:100%;}
     .reply-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
     .reply-textarea::placeholder{color:var(--text3);}
     .reply-footer{display:flex;justify-content:flex-end;gap:7px;}
-    .reply-cancel-btn{background:transparent;border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-size:12px;font-weight:600;padding:8px 14px;cursor:pointer;}
-    .reply-send-btn{background:var(--accent);border:none;border-radius:var(--r);color:white;font-size:12px;font-weight:700;padding:8px 18px;cursor:pointer;display:flex;align-items:center;gap:5px;}
+    .reply-cancel-btn{background:transparent;border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-weight:600;padding:8px 14px;cursor:pointer;}
+    .reply-send-btn{background:var(--accent);border:none;border-radius:var(--r);color:white;font-weight:700;padding:8px 18px;cursor:pointer;display:flex;align-items:center;gap:5px;}
     .reply-send-btn:disabled{opacity:0.5;cursor:not-allowed;}
     .spinner{width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
 
-    /* Skeleton/Empty/Error */
-    .skeleton{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;}
-    .skel-line{height:11px;background:linear-gradient(90deg,var(--surface2) 0%,var(--surface3) 50%,var(--surface2) 100%);background-size:200% 100%;border-radius:5px;animation:shimmer 1.5s infinite;margin-bottom:7px;}
-    .skel-line:last-child{margin-bottom:0;width:55%;}
-    @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
-    @keyframes spin{to{transform:rotate(360deg);}}
-    .empty-state{text-align:center;padding:40px 20px;color:var(--text3);}
-    .empty-icon{font-size:38px;margin-bottom:9px;}
-    .empty-title{font-size:14px;font-weight:700;color:var(--text2);margin-bottom:4px;}
-    .empty-sub{font-size:12px;line-height:1.6;}
-
     /* ToDo */
-    .todo-toolbar{display:flex;align-items:center;gap:5px;padding:4px 0 10px;flex-wrap:wrap;}
+    .todo-toolbar{display:flex;align-items:center;gap:5px;padding:8px 0 8px;flex-wrap:wrap;}
     .section-label{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;}
-    .tool-btn{background:transparent;border:1px solid var(--border2);border-radius:7px;color:var(--text3);font-size:10px;font-family:var(--mono);padding:4px 8px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+    .tool-btn{background:transparent;border:1px solid var(--border2);border-radius:7px;color:var(--text3);font-family:var(--mono);padding:4px 8px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
     .tool-btn:hover{background:var(--surface2);color:var(--text2);}
     .tool-btn.active{border-color:var(--accent);color:var(--accent2);background:rgba(124,106,247,0.1);}
     .tool-btn.ml-auto{margin-left:auto;}
     .todo-add-row{display:flex;gap:7px;margin-bottom:10px;}
-    .todo-add-input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:9px 12px;color:var(--text);font-size:13px;outline:none;transition:border-color 0.2s;}
+    .todo-add-input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:9px 12px;color:var(--text);outline:none;transition:border-color 0.2s;}
     .todo-add-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
     .todo-add-input::placeholder{color:var(--text3);}
     .todo-add-btn{background:var(--accent);border:none;border-radius:var(--r);color:white;width:38px;font-size:20px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
     .todo-add-btn:hover{background:var(--accent2);}
-
     /* Group */
     .todo-group{margin-bottom:14px;}
     .todo-group-header{display:flex;align-items:center;gap:7px;margin-bottom:5px;}
@@ -170,7 +207,6 @@
     .todo-group-count{font-size:10px;font-family:var(--mono);color:var(--text3);}
     .todo-group-add{background:transparent;border:none;color:var(--text3);font-size:15px;cursor:pointer;padding:2px 4px;transition:color 0.2s;line-height:1;}
     .todo-group-add:hover{color:var(--accent2);}
-
     /* Item */
     .todo-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:9px 11px;display:flex;align-items:flex-start;gap:8px;animation:fadeIn 0.2s ease;margin-bottom:4px;}
     .todo-item.done{opacity:0.4;}
@@ -190,18 +226,17 @@
     .todo-priority.p1{color:var(--p1);}
     .todo-priority.p2{color:var(--p2);}
     .todo-priority.p3{color:var(--p3);}
-    .todo-actions{display:flex;gap:2px;flex-shrink:0;margin-top:0;}
+    .todo-actions{display:flex;gap:2px;flex-shrink:0;}
     .todo-action-btn{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:3px;border-radius:4px;transition:all 0.2s;line-height:1;}
     .todo-action-btn:hover{color:var(--text);background:var(--surface2);}
     .todo-del-btn:hover{color:var(--danger) !important;}
-
     /* Edit Panel */
     .edit-panel{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;margin-bottom:4px;display:flex;flex-direction:column;gap:7px;animation:fadeIn 0.2s ease;}
     .edit-row{display:flex;gap:6px;align-items:center;}
     .edit-label{font-size:10px;font-family:var(--mono);color:var(--text3);min-width:40px;flex-shrink:0;}
-    .edit-input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:6px 9px;color:var(--text);font-size:12px;outline:none;transition:border-color 0.2s;}
+    .edit-input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:6px 9px;color:var(--text);outline:none;transition:border-color 0.2s;}
     .edit-input:focus{border-color:var(--accent);}
-    .priority-btns{display:flex;gap:4px;}
+    .priority-btns{display:flex;gap:4px;flex-wrap:wrap;}
     .prio-btn{padding:3px 9px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s;}
     .prio-btn.active-none{border-color:var(--text3);color:var(--text);background:var(--surface3);}
     .prio-btn.active-p3{border-color:var(--p3);color:var(--p3);background:rgba(251,191,36,0.1);}
@@ -217,7 +252,7 @@
     .modal-sheet{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;border-top:1px solid var(--border2);width:100%;max-width:520px;margin:0 auto;padding:16px 18px calc(18px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);}
     .modal-overlay.open .modal-sheet{transform:translateY(0);}
     .modal-title{font-size:14px;font-weight:700;margin-bottom:11px;}
-    .modal-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 13px;color:var(--text);font-size:14px;outline:none;margin-bottom:9px;transition:border-color 0.2s;}
+    .modal-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 13px;color:var(--text);outline:none;margin-bottom:9px;transition:border-color 0.2s;}
     .modal-input:focus{border-color:var(--accent);}
     .modal-submit{width:100%;background:var(--accent);border:none;border-radius:var(--r);color:white;font-size:13px;font-weight:700;padding:11px;cursor:pointer;}
 
@@ -231,25 +266,31 @@
     .settings-close{background:transparent;border:none;color:var(--text3);font-size:17px;cursor:pointer;}
     .settings-body{padding:13px 16px;display:flex;flex-direction:column;gap:13px;}
     .settings-section{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;}
-    .sig-textarea{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;color:var(--text);font-size:13px;line-height:1.6;resize:none;outline:none;height:75px;width:100%;transition:border-color 0.2s;}
+    .sig-textarea{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;color:var(--text);line-height:1.6;resize:none;outline:none;height:75px;width:100%;transition:border-color 0.2s;}
     .sig-textarea:focus{border-color:var(--accent);}
     .settings-save-btn{background:var(--accent);border:none;border-radius:var(--r);color:white;font-size:13px;font-weight:700;padding:10px;cursor:pointer;width:100%;margin-top:6px;}
     .logout-btn{background:transparent;border:1px solid rgba(248,113,113,0.3);border-radius:var(--r);color:var(--danger);font-size:12px;font-weight:600;padding:9px;cursor:pointer;width:100%;}
     .add-acct-btn{background:transparent;border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-size:12px;font-weight:600;padding:9px;cursor:pointer;width:100%;transition:all 0.2s;}
     .add-acct-btn:hover{background:var(--surface2);}
 
-    /* Bottom Nav */
-    nav{display:flex;background:var(--surface);border-top:1px solid var(--border);padding:7px 0 calc(7px + env(safe-area-inset-bottom));flex-shrink:0;}
+    /* Bottom Nav — mail tabs ABOVE nav */
+    .bottom-area{flex-shrink:0;}
+    .bottom-mail-tabs{display:none;gap:4px;padding:7px 14px 0;background:var(--surface);border-top:1px solid var(--border);}
+    .bottom-mail-tabs.visible{display:flex;}
+    .bottom-mail-tab{flex:1;padding:7px 4px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:4px;}
+    .bottom-mail-tab.active{background:var(--surface2);border-color:var(--accent);color:var(--accent2);box-shadow:0 0 10px var(--accent-glow);}
+    .bottom-mail-tab:hover:not(.active){color:var(--text2);}
+    nav{display:flex;background:var(--surface);padding:5px 0 calc(5px + env(safe-area-inset-bottom));}
     .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;background:transparent;border:none;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;transition:all 0.2s;position:relative;}
     .nav-btn.active{color:var(--accent2);}
     .nav-icon{font-size:18px;}
-    .nav-dot{position:absolute;top:5px;right:calc(50% - 14px);width:5px;height:5px;background:var(--unread);border-radius:50%;display:none;}
+    .nav-dot{position:absolute;top:4px;right:calc(50% - 14px);width:5px;height:5px;background:var(--unread);border-radius:50%;display:none;}
     .nav-btn.has-dot .nav-dot{display:block;}
 
     .view{display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
     .view.active{display:flex;}
 
-    .toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--surface2);border:1px solid var(--border2);border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;color:var(--text);opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;z-index:400;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+    .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--surface2);border:1px solid var(--border2);border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;color:var(--text);opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;z-index:400;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   </style>
 </head>
@@ -258,7 +299,7 @@
 <!-- Login -->
 <div id="login-screen">
   <div class="login-logo">MailFocus</div>
-  <div class="login-ver">v1.2</div>
+  <div class="login-ver">v1.3</div>
   <div id="saved-accts-wrap" class="saved-accts-wrap" style="display:none">
     <div class="saved-accts-label">保存済みアカウント</div>
     <div id="saved-accts-list"></div>
@@ -271,7 +312,7 @@
       <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-3.59-13.46-8.83l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       Googleアカウントでログイン
     </button>
-    <div class="login-hint">Client IDの取得方法は <a onclick="showSetupGuide()">セットアップガイド</a> を参照</div>
+    <div class="login-hint">詳細は <a onclick="showSetupGuide()">セットアップガイド</a> を参照</div>
   </div>
 </div>
 
@@ -280,7 +321,7 @@
   <header>
     <div class="logo-wrap">
       <div class="logo">MailFocus</div>
-      <span class="version-badge">v1.2</span>
+      <span class="version-badge">v1.3</span>
     </div>
     <div class="header-right">
       <span class="badge badge-unread" id="unread-count">…</span>
@@ -292,41 +333,50 @@
     </div>
   </header>
 
+  <!-- accounts bar (shown when 2+ accounts) -->
+  <div id="accounts-bar" style="display:none"></div>
+
+  <!-- account filter (shown in mail view, 2+ accounts) -->
   <div id="mail-tabs-bar" style="display:none">
-    <div class="mail-tabs">
-      <button class="mail-tab active" onclick="switchMailTab('unread')" id="tab-unread">✉️ 未読</button>
-      <button class="mail-tab" onclick="switchMailTab('starred')" id="tab-starred">⭐ スター</button>
-    </div>
     <div class="account-filter" id="account-filter"></div>
   </div>
 
-  <div class="scroll-area" id="main-scroll">
-    <div class="view active" id="view-mail">
-      <div id="mail-list-container" class="mail-list"></div>
-    </div>
-    <div class="view" id="view-todo">
-      <div class="todo-toolbar">
-        <span class="section-label">タスク</span>
-        <button class="tool-btn" onclick="openGroupModal()">＋ グループ</button>
-        <button class="tool-btn" id="show-done-btn" onclick="toggleShowDone()">完了済みを表示</button>
-        <button class="tool-btn ml-auto" id="sort-btn" onclick="cycleSortMode()">追加順 ↕</button>
+  <div class="main-content">
+    <div class="scroll-area" id="main-scroll">
+      <div class="view active" id="view-mail">
+        <div id="mail-list-container"></div>
       </div>
-      <div class="todo-add-row">
-        <input type="text" class="todo-add-input" id="todo-input" placeholder="デフォルトグループに追加…" maxlength="200">
-        <button class="todo-add-btn" onclick="addTodo()">＋</button>
+      <div class="view" id="view-todo">
+        <div class="todo-toolbar">
+          <span class="section-label">タスク</span>
+          <button class="tool-btn" onclick="openGroupModal()">＋ グループ</button>
+          <button class="tool-btn" id="show-done-btn" onclick="toggleShowDone()">完了済みを表示</button>
+          <button class="tool-btn ml-auto" id="sort-btn" onclick="cycleSortMode()">追加順 ↕</button>
+        </div>
+        <div class="todo-add-row">
+          <input type="text" class="todo-add-input" id="todo-input" placeholder="デフォルトグループに追加…" maxlength="200">
+          <button class="todo-add-btn" onclick="addTodo()">＋</button>
+        </div>
+        <div id="todo-groups-container"></div>
       </div>
-      <div id="todo-groups-container"></div>
     </div>
   </div>
 
-  <nav>
-    <button class="nav-btn active has-dot" id="nav-mail" onclick="switchView('mail')">
-      <div class="nav-icon">✉️</div><span>メール</span><div class="nav-dot"></div>
-    </button>
-    <button class="nav-btn" id="nav-todo" onclick="switchView('todo')">
-      <div class="nav-icon">✅</div><span>ToDo</span><div class="nav-dot"></div>
-    </button>
-  </nav>
+  <!-- Bottom area: mail tabs + nav -->
+  <div class="bottom-area">
+    <div class="bottom-mail-tabs" id="bottom-mail-tabs">
+      <button class="bottom-mail-tab active" id="btab-unread" onclick="switchMailTab('unread')">✉️ 未読</button>
+      <button class="bottom-mail-tab" id="btab-starred" onclick="switchMailTab('starred')">⭐ スター</button>
+    </div>
+    <nav>
+      <button class="nav-btn active has-dot" id="nav-mail" onclick="switchView('mail')">
+        <div class="nav-icon">✉️</div><span>メール</span><div class="nav-dot"></div>
+      </button>
+      <button class="nav-btn" id="nav-todo" onclick="switchView('todo')">
+        <div class="nav-icon">✅</div><span>ToDo</span><div class="nav-dot"></div>
+      </button>
+    </nav>
+  </div>
 </div>
 
 <!-- Detail Overlay -->
@@ -342,7 +392,14 @@
         <div class="sheet-meta-row"><span class="meta-label">Acct</span><span class="meta-value" id="detail-acct">—</span></div>
       </div>
     </div>
+    <!-- テキスト/HTML切り替えバー -->
+    <div class="body-toggle-bar">
+      <button class="body-toggle-btn active" id="toggle-plain" onclick="setBodyMode('plain')">テキスト</button>
+      <button class="body-toggle-btn" id="toggle-html" onclick="setBodyMode('html')">HTML</button>
+      <button class="open-gmail-btn" onclick="openInGmail()">Gmailで開く ↗</button>
+    </div>
     <div class="sheet-body" id="detail-body"></div>
+    <iframe class="sheet-body-html" id="detail-body-html" sandbox="allow-same-origin" style="display:none;height:300px;"></iframe>
     <div class="reply-panel" id="reply-panel">
       <div class="reply-inner">
         <div class="reply-to-row">
@@ -413,10 +470,10 @@
         <li><a href="https://console.cloud.google.com/" target="_blank" style="color:var(--accent2)">Google Cloud Console</a> を開く</li>
         <li>新しいプロジェクトを作成</li>
         <li>APIとサービス → ライブラリ → Gmail API を有効化</li>
-        <li>APIとサービス → OAuth同意画面 → 外部で作成<br>「対象」メニューでテストユーザーに自分のアドレスを追加</li>
+        <li>APIとサービス → OAuth同意画面 → 外部で作成、「対象」でテストユーザーに自分のアドレスを追加</li>
         <li>認証情報 → OAuthクライアントID → ウェブアプリケーション</li>
         <li>承認済みJS生成元に <span id="guide-origin" style="font-family:var(--mono);font-size:11px;color:var(--accent2)"></span> を追加</li>
-        <li>Client IDをコピーしてログイン画面に貼り付け</li>
+        <li>Client IDをコピーしてindex.htmlのclient-id-inputのvalue属性に貼り付け</li>
       </ol>
       <button class="settings-save-btn" onclick="closeGuide()" style="margin-top:8px">閉じる</button>
     </div>
@@ -426,490 +483,329 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ══════════════════════════════════
-// STATE
-// ══════════════════════════════════
-const SCOPES = 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
-let accounts = [];
-let activeAcctFilter = 'all';
-let emails = { unread: [], starred: [] };
-let currentMailTab = 'unread';
-let currentMail = null;
-let signature = '';
-let draftTimer = null;
+const SCOPES='https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
+let accounts=[],activeAcctFilter='all',emails={unread:[],starred:[]};
+let currentMailTab='unread',currentMail=null,signature='',draftTimer=null;
+let bodyMode='plain'; // 'plain' | 'html'
+let todoGroups=[],showDone=false,sortMode='added',editingId=null,addingToGroup=null;
+let db=null;
 
-let todoGroups = [];
-let showDone = false;
-let sortMode = 'added';
-let editingId = null;
-let addingToGroup = null;
+// ── IndexedDB ──
+async function initDB(){return new Promise((res,rej)=>{const req=indexedDB.open('MailFocusDB',1);req.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('kv'))d.createObjectStore('kv',{keyPath:'k'});};req.onsuccess=e=>{db=e.target.result;res();};req.onerror=()=>rej();});}
+async function dbSet(k,v){if(!db)return;const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put({k,v});}
+async function dbGet(k){if(!db)return null;return new Promise(res=>{const tx=db.transaction('kv','readonly');const req=tx.objectStore('kv').get(k);req.onsuccess=()=>res(req.result?.v??null);req.onerror=()=>res(null);});}
+async function saveTodosDB(){await dbSet('todoGroups',todoGroups);}
 
-// ══════════════════════════════════
-// INDEXEDDB
-// ══════════════════════════════════
-let db = null;
-async function initDB() {
-  return new Promise((res, rej) => {
-    const req = indexedDB.open('MailFocusDB', 1);
-    req.onupgradeneeded = e => {
-      const d = e.target.result;
-      if (!d.objectStoreNames.contains('kv')) d.createObjectStore('kv', { keyPath: 'k' });
-    };
-    req.onsuccess = e => { db = e.target.result; res(); };
-    req.onerror = () => rej();
-  });
-}
-async function dbSet(k, v) {
-  if (!db) return;
-  const tx = db.transaction('kv', 'readwrite');
-  tx.objectStore('kv').put({ k, v });
-}
-async function dbGet(k) {
-  if (!db) return null;
-  return new Promise(res => {
-    const tx = db.transaction('kv', 'readonly');
-    const req = tx.objectStore('kv').get(k);
-    req.onsuccess = () => res(req.result?.v ?? null);
-    req.onerror = () => res(null);
-  });
-}
-async function saveTodosDB() { await dbSet('todoGroups', todoGroups); }
-
-// ══════════════════════════════════
-// BOOT
-// ══════════════════════════════════
-window.onload = async () => {
+// ── Boot ──
+window.onload=async()=>{
   await initDB();
-  signature = await dbGet('signature') || '';
-  showDone = (await dbGet('showDone')) === true;
-  sortMode = await dbGet('sortMode') || 'added';
-  const savedGroups = await dbGet('todoGroups');
-  todoGroups = savedGroups && savedGroups.length ? savedGroups : [{ id: 'default', name: 'タスク', items: [] }];
-
-  const savedAccts = JSON.parse(localStorage.getItem('mf-accounts') || '[]');
-  renderSavedAccounts(savedAccts);
-  const savedCid = localStorage.getItem('mf-client-id');
-  if (savedCid) document.getElementById('client-id-input').value = savedCid;
-
+  signature=await dbGet('signature')||'';
+  showDone=(await dbGet('showDone'))===true;
+  sortMode=await dbGet('sortMode')||'added';
+  const sg=await dbGet('todoGroups');
+  todoGroups=sg&&sg.length?sg:[{id:'default',name:'タスク',items:[]}];
+  const sa=JSON.parse(localStorage.getItem('mf-accounts')||'[]');
+  renderSavedAccounts(sa);
   await loadGapi();
 };
 
-function loadGapi() {
-  return new Promise(res => {
-    const s = document.createElement('script');
-    s.src = 'https://apis.google.com/js/api.js';
-    s.onload = () => gapi.load('client', res);
-    document.head.appendChild(s);
-  });
-}
-function loadGis() {
-  return new Promise(res => {
-    if (window.google?.accounts) { res(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://accounts.google.com/gsi/client';
-    s.onload = res;
-    document.head.appendChild(s);
-  });
-}
+function loadGapi(){return new Promise(res=>{const s=document.createElement('script');s.src='https://apis.google.com/js/api.js';s.onload=()=>gapi.load('client',res);document.head.appendChild(s);});}
+function loadGis(){return new Promise(res=>{if(window.google?.accounts){res();return;}const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=res;document.head.appendChild(s);});}
 
-// ══════════════════════════════════
-// AUTH / ACCOUNTS
-// ══════════════════════════════════
-function renderSavedAccounts(saved) {
-  const wrap = document.getElementById('saved-accts-wrap');
-  const list = document.getElementById('saved-accts-list');
-  if (!saved.length) { wrap.style.display = 'none'; return; }
-  wrap.style.display = '';
-  list.innerHTML = saved.map(a => {
-    const name = (a.displayName || '').trim() || (a.email || '').split('@')[0] || 'User';
-    const initial = name[0].toUpperCase();
+// ── Auth ──
+function renderSavedAccounts(saved){
+  const wrap=document.getElementById('saved-accts-wrap'),list=document.getElementById('saved-accts-list');
+  if(!saved.length){wrap.style.display='none';return;}
+  wrap.style.display='';
+  list.innerHTML=saved.map(a=>{
+    const name=(a.displayName||'').trim()||(a.email||'').split('@')[0]||'User';
+    const ini=name[0].toUpperCase();
     return `<div class="account-chip" onclick="quickLogin('${esc(a.email)}','${esc(a.clientId)}')">
-      <div class="account-avatar">${initial}</div>
+      <div class="account-avatar">${ini}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</div>
-        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.email || '')}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.email||'')}</div>
       </div>
       <button class="account-remove" onclick="event.stopPropagation();removeSaved('${esc(a.email)}')">✕</button>
     </div>`;
   }).join('');
 }
+function removeSaved(email){let s=JSON.parse(localStorage.getItem('mf-accounts')||'[]');s=s.filter(a=>a.email!==email);localStorage.setItem('mf-accounts',JSON.stringify(s));renderSavedAccounts(s);}
+async function quickLogin(email,clientId){document.getElementById('client-id-input').value=clientId;await startLogin();}
 
-function removeSaved(email) {
-  let s = JSON.parse(localStorage.getItem('mf-accounts') || '[]');
-  s = s.filter(a => a.email !== email);
-  localStorage.setItem('mf-accounts', JSON.stringify(s));
-  renderSavedAccounts(s);
-}
-
-async function quickLogin(email, clientId) {
-  document.getElementById('client-id-input').value = clientId;
-  await startLogin();
-}
-
-async function startLogin() {
-  const clientId = document.getElementById('client-id-input').value.trim();
-  if (!clientId) { showToast('⚠ Client IDを入力してください'); return; }
-  localStorage.setItem('mf-client-id', clientId);
+async function startLogin(){
+  const clientId=document.getElementById('client-id-input').value.trim();
+  if(!clientId){showToast('⚠ Client IDを入力してください');return;}
+  localStorage.setItem('mf-client-id',clientId);
   await loadGis();
-
-  const tc = google.accounts.oauth2.initTokenClient({
-    client_id: clientId,
-    scope: SCOPES,
-    include_granted_scopes: true,
-    callback: async resp => {
-      if (resp.error) { showToast('❌ 認証エラー: ' + resp.error); return; }
-      const token = resp.access_token;
-      let email = '', displayName = '';
-
-      // まず id_token から取得を試みる（ネットワーク不要・最も確実）
-      if (resp.id_token) {
-        try {
-          const parts = resp.id_token.split('.');
-          const payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
-          email = payload.email || '';
-          displayName = payload.name || '';
-        } catch {}
-      }
-
-      // id_token がない or 取れなかった場合は userinfo v3 を呼ぶ
-      if (!email) {
-        try {
-          const r = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const info = await r.json();
-          email = (info.email || '').trim();
-          displayName = (info.name || '').trim();
-        } catch {}
-      }
-
-      // それでも取れなければ v2 を試す
-      if (!email) {
-        try {
-          const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const info = await r.json();
-          email = (info.email || '').trim();
-          displayName = (info.name || '').trim();
-        } catch {}
-      }
-
-      // displayName が空ならメールのローカル部分を使う
-      if (!displayName) displayName = email.split('@')[0] || 'User';
-      if (!email) { showToast('⚠ アカウント情報を取得できませんでした'); return; }
-
-      if (accounts.find(a => a.email === email)) {
-        accounts = accounts.map(a => a.email === email ? { ...a, token, displayName } : a);
-      } else {
-        accounts.push({ email, clientId, token, displayName });
-      }
-      const toSave = accounts.map(a => ({ email: a.email, clientId: a.clientId, displayName: a.displayName || a.email.split('@')[0] }));
-      localStorage.setItem('mf-accounts', JSON.stringify(toSave));
-
-      showApp();
-      updateAccountsHeader();
-      loadAllEmails();
-      renderTodos();
+  const tc=google.accounts.oauth2.initTokenClient({
+    client_id:clientId,scope:SCOPES,include_granted_scopes:true,
+    callback:async resp=>{
+      if(resp.error){showToast('❌ 認証エラー: '+resp.error);return;}
+      const token=resp.access_token;
+      let email='',displayName='';
+      // 1) id_token from resp
+      if(resp.id_token){try{const p=resp.id_token.split('.');const pl=JSON.parse(atob(p[1].replace(/-/g,'+').replace(/_/g,'/')));email=(pl.email||'').trim();displayName=(pl.name||'').trim();}catch{}}
+      // 2) openidconnect
+      if(!email){try{const r=await fetch('https://openidconnect.googleapis.com/v1/userinfo',{headers:{Authorization:`Bearer ${token}`}});const info=await r.json();email=(info.email||'').trim();displayName=(info.name||'').trim();}catch{}}
+      // 3) v2
+      if(!email){try{const r=await fetch('https://www.googleapis.com/oauth2/v2/userinfo',{headers:{Authorization:`Bearer ${token}`}});const info=await r.json();email=(info.email||'').trim();displayName=(info.name||'').trim();}catch{}}
+      if(!displayName)displayName=email.split('@')[0]||'User';
+      if(!email){showToast('⚠ アカウント情報を取得できませんでした');return;}
+      if(accounts.find(a=>a.email===email)){accounts=accounts.map(a=>a.email===email?{...a,token,displayName}:a);}
+      else{accounts.push({email,clientId,token,displayName});}
+      const toSave=accounts.map(a=>({email:a.email,clientId:a.clientId,displayName:a.displayName||a.email.split('@')[0]}));
+      localStorage.setItem('mf-accounts',JSON.stringify(toSave));
+      showApp();loadAllEmails();renderTodos();
     }
   });
-  tc.requestAccessToken({ prompt: 'consent' });
+  tc.requestAccessToken({prompt:'consent'});
 }
 
-function showApp() {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = '';
-  updateAccountsHeader();
+function showApp(){document.getElementById('login-screen').style.display='none';document.getElementById('app').style.display='';updateAccountsBar();}
+function showLoginForm(){document.getElementById('login-screen').style.display='';document.getElementById('app').style.display='none';renderSavedAccounts(JSON.parse(localStorage.getItem('mf-accounts')||'[]'));}
+function logoutAll(){accounts=[];emails={unread:[],starred:[]};localStorage.removeItem('mf-accounts');closeSettings();document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='';renderSavedAccounts([]);showToast('👋 ログアウトしました');}
+function logoutAccount(email){accounts=accounts.filter(a=>a.email!==email);let s=JSON.parse(localStorage.getItem('mf-accounts')||'[]');s=s.filter(a=>a.email!==email);localStorage.setItem('mf-accounts',JSON.stringify(s));if(!accounts.length){logoutAll();return;}emails.unread=emails.unread.filter(m=>m.acct!==email);emails.starred=emails.starred.filter(m=>m.acct!==email);renderMailList();updateBadges();updateAccountsBar();openSettings();showToast('👋 '+email+' をログアウト');}
+
+function updateAccountsBar(){
+  const bar=document.getElementById('accounts-bar');
+  if(accounts.length<=1){bar.style.display='none';return;}
+  bar.style.display='flex';
+  bar.innerHTML=accounts.map(a=>{
+    const name=(a.displayName||a.email.split('@')[0]);
+    const ini=name[0].toUpperCase();
+    return `<div class="acct-pill"><div class="acct-pill-avatar">${ini}</div><span class="acct-pill-name">${esc(name)}</span></div>`;
+  }).join('');
 }
 
-// アカウント情報をヘッダーに表示
-function updateAccountsHeader() {
-  // Remove existing account bar if any
-  const existing = document.getElementById('accounts-header-bar');
-  if (existing) existing.remove();
+// ── Gmail API ──
+async function gmailGet(acct,path,params={}){const url=new URL(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`);Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));const r=await fetch(url,{headers:{Authorization:`Bearer ${acct.token}`}});if(r.status===401){showToast(`⚠ ${acct.email} の認証が切れました`);throw new Error('401');}if(!r.ok)throw new Error(`Gmail API ${r.status}`);return r.json();}
+async function gmailPost(acct,path,body){const r=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`,{method:'POST',headers:{Authorization:`Bearer ${acct.token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});if(r.status===401){showToast(`⚠ ${acct.email} の認証が切れました`);throw new Error('401');}if(!r.ok)throw new Error(`Gmail API ${r.status}`);return r.json();}
 
-  if (accounts.length === 0) return;
-
-  const bar = document.createElement('div');
-  bar.id = 'accounts-header-bar';
-  bar.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 14px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;';
-
-  accounts.forEach(a => {
-    const chip = document.createElement('div');
-    chip.style.cssText = 'display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:3px 10px 3px 5px;flex-shrink:0;';
-    const avatar = document.createElement('div');
-    avatar.style.cssText = 'width:18px;height:18px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;flex-shrink:0;';
-    avatar.textContent = (a.displayName || a.email)[0].toUpperCase();
-    const name = document.createElement('span');
-    name.style.cssText = 'font-size:10px;font-family:var(--mono);color:var(--text2);white-space:nowrap;';
-    name.textContent = a.displayName || a.email.split('@')[0];
-    chip.appendChild(avatar);
-    chip.appendChild(name);
-    bar.appendChild(chip);
-  });
-
-  // Insert after header, before mail-tabs-bar
-  const header = document.querySelector('header');
-  header.insertAdjacentElement('afterend', bar);
-}
-
-function showLoginForm() {
-  document.getElementById('login-screen').style.display = '';
-  document.getElementById('app').style.display = 'none';
-  renderSavedAccounts(JSON.parse(localStorage.getItem('mf-accounts') || '[]'));
-}
-
-function logoutAll() {
-  accounts = []; emails = { unread: [], starred: [] };
-  localStorage.removeItem('mf-accounts');
-  closeSettings();
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('login-screen').style.display = '';
-  renderSavedAccounts([]);
-  showToast('👋 ログアウトしました');
-}
-
-function logoutAccount(email) {
-  accounts = accounts.filter(a => a.email !== email);
-  let s = JSON.parse(localStorage.getItem('mf-accounts') || '[]');
-  s = s.filter(a => a.email !== email);
-  localStorage.setItem('mf-accounts', JSON.stringify(s));
-  if (!accounts.length) { logoutAll(); return; }
-  emails.unread = emails.unread.filter(m => m.acct !== email);
-  emails.starred = emails.starred.filter(m => m.acct !== email);
-  renderMailList(); updateBadges(); openSettings();
-  showToast('👋 ' + email + ' をログアウト');
-}
-
-// ══════════════════════════════════
-// GMAIL API
-// ══════════════════════════════════
-async function gmailGet(acct, path, params = {}) {
-  const url = new URL(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`);
-  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${acct.token}` } });
-  if (r.status === 401) { showToast(`⚠ ${acct.email} の認証が切れました`); throw new Error('401'); }
-  if (!r.ok) throw new Error(`Gmail API ${r.status}`);
-  return r.json();
-}
-async function gmailPost(acct, path, body) {
-  const r = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
-    method: 'POST', headers: { Authorization: `Bearer ${acct.token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  if (r.status === 401) { showToast(`⚠ ${acct.email} の認証が切れました`); throw new Error('401'); }
-  if (!r.ok) throw new Error(`Gmail API ${r.status}`);
-  return r.json();
-}
-
-async function loadAllEmails() {
-  if (!accounts.length) return;
+async function loadAllEmails(){
+  if(!accounts.length)return;
   document.getElementById('refresh-btn').classList.add('spinning');
-  document.getElementById('mail-list-container').innerHTML =
-    [1,2,3,4].map(()=>`<div class="skeleton"><div class="skel-line" style="width:40%;height:10px"></div><div class="skel-line" style="width:80%"></div><div class="skel-line"></div></div>`).join('');
-  try {
-    const allU = [], allS = [];
-    await Promise.all(accounts.map(async acct => {
-      const [ud, sd] = await Promise.all([
-        gmailGet(acct,'messages',{q:'label:unread',maxResults:50}).catch(()=>({})),
-        gmailGet(acct,'messages',{q:'label:starred',maxResults:50}).catch(()=>({}))
-      ]);
-      const [u, s] = await Promise.all([fetchDetails(acct, ud.messages||[]), fetchDetails(acct, sd.messages||[])]);
-      allU.push(...u); allS.push(...s);
+  document.getElementById('mail-list-container').innerHTML=[1,2,3,4].map(()=>`<div class="skeleton"><div class="skel-line" style="width:40%;height:10px"></div><div class="skel-line" style="width:80%"></div><div class="skel-line"></div></div>`).join('');
+  try{
+    const allU=[],allS=[];
+    await Promise.all(accounts.map(async acct=>{
+      const[ud,sd]=await Promise.all([gmailGet(acct,'messages',{q:'label:unread',maxResults:50}).catch(()=>({})),gmailGet(acct,'messages',{q:'label:starred',maxResults:50}).catch(()=>({}))]);
+      const[u,s]=await Promise.all([fetchDetails(acct,ud.messages||[]),fetchDetails(acct,sd.messages||[])]);
+      allU.push(...u);allS.push(...s);
     }));
-    emails.unread = allU; emails.starred = allS;
-    renderAcctFilter(); renderMailList(); updateBadges();
-  } catch(e) {
-    document.getElementById('mail-list-container').innerHTML =
-      `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">読み込みエラー</div><div class="empty-sub">${esc(e.message)}</div></div>`;
-  } finally { document.getElementById('refresh-btn').classList.remove('spinning'); }
+    emails.unread=allU;emails.starred=allS;
+    renderAcctFilter();renderMailList();updateBadges();
+  }catch(e){
+    document.getElementById('mail-list-container').innerHTML=`<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">読み込みエラー</div><div class="empty-sub">${esc(e.message)}</div></div>`;
+  }finally{document.getElementById('refresh-btn').classList.remove('spinning');}
 }
 
-async function fetchDetails(acct, list) {
-  if (!list.length) return [];
-  const res = await Promise.all(list.slice(0,50).map(m => gmailGet(acct,`messages/${m.id}`,{format:'full'}).catch(()=>null)));
-  return res.filter(Boolean).map(msg => parseMsg(msg, acct.email));
+async function fetchDetails(acct,list){
+  if(!list.length)return[];
+  const res=await Promise.all(list.slice(0,50).map(m=>gmailGet(acct,`messages/${m.id}`,{format:'full'}).catch(()=>null)));
+  return res.filter(Boolean).map(msg=>parseMsg(msg,acct.email));
 }
 
-function b64ToBytes(b64) {
-  // Gmail uses URL-safe base64 (- and _ instead of + and /)
-  const std = b64.replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(std);
-  const bytes = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-  return bytes;
-}
+function b64ToBytes(b64){const std=b64.replace(/-/g,'+').replace(/_/g,'/');const raw=atob(std);const bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes;}
+function decodeB64UTF8(b64){try{return new TextDecoder('utf-8').decode(b64ToBytes(b64));}catch{return atob(b64.replace(/-/g,'+').replace(/_/g,'/'));}}
 
-function decodeB64UTF8(b64) {
-  try {
-    return new TextDecoder('utf-8').decode(b64ToBytes(b64));
-  } catch {
-    return atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
-  }
-}
-
-function parseMsg(msg, acctEmail) {
-  const h = n => (msg.payload?.headers||[]).find(h=>h.name.toLowerCase()===n.toLowerCase())?.value||'';
-  let body = '';
-  const ext = parts => {
-    for (const p of (parts||[])) {
-      if (p.mimeType === 'text/plain' && p.body?.data) {
-        body += decodeB64UTF8(p.body.data);
-      } else if (p.parts) {
-        ext(p.parts);
-      }
+function parseMsg(msg,acctEmail){
+  const h=n=>(msg.payload?.headers||[]).find(h=>h.name.toLowerCase()===n.toLowerCase())?.value||'';
+  let plain='',htmlBody='';
+  const ext=parts=>{
+    for(const p of(parts||[])){
+      if(p.mimeType==='text/plain'&&p.body?.data)plain+=decodeB64UTF8(p.body.data);
+      else if(p.mimeType==='text/html'&&p.body?.data)htmlBody+=decodeB64UTF8(p.body.data);
+      else if(p.parts)ext(p.parts);
     }
   };
-  if (msg.payload?.body?.data) {
-    body = decodeB64UTF8(msg.payload.body.data);
-  } else {
-    ext(msg.payload?.parts);
-  }
-  body = body.replace(/\r\n/g, '\n').trim();
+  if(msg.payload?.body?.data){
+    const ct=h('Content-Type')||'';
+    if(ct.includes('text/html'))htmlBody=decodeB64UTF8(msg.payload.body.data);
+    else plain=decodeB64UTF8(msg.payload.body.data);
+  }else{ext(msg.payload?.parts);}
+  plain=plain.replace(/\r\n/g,'\n').trim();
   let dateFmt='';
-  try { const d=new Date(h('Date')); const today=d.toDateString()===new Date().toDateString(); dateFmt=today?d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}); } catch{}
-  return { id:msg.id, threadId:msg.threadId, acct:acctEmail,
+  try{const d=new Date(h('Date'));const today=d.toDateString()===new Date().toDateString();dateFmt=today?d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch{}
+  return{id:msg.id,threadId:msg.threadId,acct:acctEmail,
     from:h('From').replace(/<[^>]+>/,'').trim()||h('From'),
     fromEmail:(h('From').match(/<([^>]+)>/)||[])[1]||h('From'),
-    to:h('To'), subject:h('Subject')||'(件名なし)', date:dateFmt,
-    snippet:msg.snippet||'', body:body.slice(0,800),
-    isUnread:(msg.labelIds||[]).includes('UNREAD'), isStarred:(msg.labelIds||[]).includes('STARRED') };
+    to:h('To'),subject:h('Subject')||'(件名なし)',date:dateFmt,
+    snippet:msg.snippet||'',
+    body:plain.slice(0,2000),
+    htmlBody:htmlBody.slice(0,50000),
+    isUnread:(msg.labelIds||[]).includes('UNREAD'),isStarred:(msg.labelIds||[]).includes('STARRED')};
 }
 
-function renderAcctFilter() {
-  const bar = document.getElementById('account-filter');
-  if (accounts.length <= 1) { bar.innerHTML=''; return; }
-  bar.innerHTML = `<button class="acct-chip ${activeAcctFilter==='all'?'active':''}" onclick="setAcctFilter('all')">すべて</button>`
-    + accounts.map(a=>`<button class="acct-chip ${activeAcctFilter===a.email?'active':''}" onclick="setAcctFilter('${esc(a.email)}')">${esc(a.email.split('@')[0])}</button>`).join('');
+function renderAcctFilter(){
+  const bar=document.getElementById('account-filter');
+  const tabsBar=document.getElementById('mail-tabs-bar');
+  if(accounts.length<=1){bar.innerHTML='';tabsBar.style.display='none';return;}
+  tabsBar.style.display='';
+  bar.innerHTML=`<button class="acct-chip ${activeAcctFilter==='all'?'active':''}" onclick="setAcctFilter('all')">すべて</button>`
+    +accounts.map(a=>`<button class="acct-chip ${activeAcctFilter===a.email?'active':''}" onclick="setAcctFilter('${esc(a.email)}')">${esc((a.displayName||a.email.split('@')[0]))}</button>`).join('');
 }
-function setAcctFilter(f) { activeAcctFilter=f; renderAcctFilter(); renderMailList(); }
+function setAcctFilter(f){activeAcctFilter=f;renderAcctFilter();renderMailList();}
 
-function getFilteredList() {
-  return (currentMailTab==='unread'?emails.unread:emails.starred).filter(m=>activeAcctFilter==='all'||m.acct===activeAcctFilter);
-}
+function getFilteredList(){return(currentMailTab==='unread'?emails.unread:emails.starred).filter(m=>activeAcctFilter==='all'||m.acct===activeAcctFilter);}
 
-function renderMailList() {
-  const el = document.getElementById('mail-list-container');
-  const list = getFilteredList();
-  if (!list.length) {
+function renderMailList(){
+  const el=document.getElementById('mail-list-container');
+  const list=getFilteredList();
+  if(!list.length){
     el.innerHTML=`<div class="empty-state"><div class="empty-icon">${currentMailTab==='unread'?'📭':'⭐'}</div><div class="empty-title">${currentMailTab==='unread'?'未読メールなし':'スターなし'}</div><div class="empty-sub">すべて確認済みです</div></div>`;
     return;
   }
-  el.innerHTML = list.map((m,i)=>{
+  el.innerHTML=`<div class="mail-list">${list.map((m,i)=>{
     const tags=[];
-    if(m.isUnread) tags.push(`<span class="icon-tag tag-unread">● 未読</span>`);
-    if(m.isStarred) tags.push(`<span class="icon-tag tag-starred">★ スター</span>`);
-    if(accounts.length>1) tags.push(`<span class="icon-tag tag-acct">${esc(m.acct.split('@')[0])}</span>`);
+    if(m.isUnread)tags.push(`<span class="icon-tag tag-unread">● 未読</span>`);
+    if(m.isStarred)tags.push(`<span class="icon-tag tag-starred">★ スター</span>`);
+    if(accounts.length>1)tags.push(`<span class="icon-tag tag-acct">${esc((m.displayName||m.acct.split('@')[0]))}</span>`);
     return `<div class="mail-card ${m.isUnread?'unread':''} ${m.isStarred?'starred':''}" onclick="openMail(${i})">
       <div class="mail-header"><div class="mail-from">${esc(m.from)}</div><div class="mail-date">${m.date}</div></div>
       <div class="mail-subject">${esc(m.subject)}</div>
       <div class="mail-snippet">${esc(m.snippet)}</div>
       ${tags.length?`<div class="mail-footer">${tags.join('')}</div>`:''}
     </div>`;
-  }).join('');
+  }).join('')}</div>`;
 }
 
-function updateBadges() {
+function updateBadges(){
   const u=emails.unread.filter(m=>m.isUnread).length;
   document.getElementById('unread-count').textContent=`✉️ ${u}`;
   document.getElementById('star-count').textContent=`★ ${emails.starred.length}`;
   document.getElementById('nav-mail').classList.toggle('has-dot',u>0);
 }
 
-function switchMailTab(tab) {
+function switchMailTab(tab){
   currentMailTab=tab;
-  document.getElementById('tab-unread').classList.toggle('active',tab==='unread');
-  document.getElementById('tab-starred').classList.toggle('active',tab==='starred');
+  ['unread','starred'].forEach(t=>{
+    document.getElementById(`btab-${t}`).classList.toggle('active',t===tab);
+  });
   renderMailList();
 }
 
-function openMail(idx) {
-  const list = getFilteredList();
-  currentMail = { ...list[idx], _idx: idx };
+// ── Mail Detail ──
+function openMail(idx){
+  const list=getFilteredList();
+  currentMail={...list[idx],_idx:idx};
   document.getElementById('detail-subject').textContent=currentMail.subject;
   document.getElementById('detail-from').textContent=currentMail.from;
   document.getElementById('detail-to').textContent=currentMail.to;
   document.getElementById('detail-date').textContent=currentMail.date;
   document.getElementById('detail-acct').textContent=currentMail.acct;
-  document.getElementById('detail-body').textContent=currentMail.body||currentMail.snippet||'(本文なし)';
-  // Update star button
+  // Reset to plain mode
+  bodyMode='plain';
+  setBodyMode('plain');
   updateStarBtn(currentMail.isStarred);
   document.getElementById('detail-overlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
 
-function updateStarBtn(isStarred) {
-  const btn = document.getElementById('star-action-btn');
-  if (!btn) return;
-  btn.textContent = '★ スター';
-  btn.className = 'action-btn btn-star' + (isStarred ? ' on' : '');
+function setBodyMode(mode){
+  bodyMode=mode;
+  document.getElementById('toggle-plain').classList.toggle('active',mode==='plain');
+  document.getElementById('toggle-html').classList.toggle('active',mode==='html');
+  const plainEl=document.getElementById('detail-body');
+  const htmlEl=document.getElementById('detail-body-html');
+  if(mode==='plain'){
+    plainEl.style.display='';
+    htmlEl.style.display='none';
+    // Render plain text with hyperlinks
+    const raw=currentMail?.body||currentMail?.snippet||'(本文なし)';
+    plainEl.innerHTML=linkify(raw);
+  }else{
+    plainEl.style.display='none';
+    htmlEl.style.display='';
+    // Render HTML in sandboxed iframe
+    const html=currentMail?.htmlBody||'';
+    if(html){
+      // Inject meta and base styles for readability
+      const doc=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:sans-serif;font-size:14px;line-height:1.6;padding:12px;color:#111;word-break:break-word;max-width:100%;}img{max-width:100%;height:auto;}a{color:#7c6af7;}</style></head><body>${html}</body></html>`;
+      htmlEl.srcdoc=doc;
+      htmlEl.style.height='400px';
+    }else{
+      // fallback to plain
+      setBodyMode('plain');
+      showToast('HTMLコンテンツがありません');
+    }
+  }
 }
 
-function closeDetail() {
-  const panel=document.getElementById('reply-panel'), ta=document.getElementById('reply-textarea');
-  if(panel.classList.contains('open')&&currentMail?.id&&ta.value.trim()) saveDraft(currentMail.id,ta.value);
-  panel.classList.remove('open'); ta.value=''; ta.oninput=null; showDraftInd(false);
+// Linkify plain text — wrap URLs in <a> tags
+function linkify(text){
+  const safe=esc(text);
+  return safe.replace(/(https?:\/\/[^\s&lt;&gt;&quot;]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:var(--accent2);word-break:break-all;">$1</a>');
+}
+
+function openInGmail(){
+  if(!currentMail)return;
+  // Opens Gmail web with the thread
+  const url=`https://mail.google.com/mail/u/0/#inbox/${currentMail.threadId||currentMail.id}`;
+  window.open(url,'_blank');
+}
+
+function updateStarBtn(isStarred){
+  const btn=document.getElementById('star-action-btn');
+  if(!btn)return;
+  btn.textContent='★ スター';
+  btn.className='action-btn btn-star'+(isStarred?' on':'');
+}
+
+function closeDetail(){
+  const panel=document.getElementById('reply-panel'),ta=document.getElementById('reply-textarea');
+  if(panel.classList.contains('open')&&currentMail?.id&&ta.value.trim())saveDraft(currentMail.id,ta.value);
+  panel.classList.remove('open');ta.value='';ta.oninput=null;showDraftInd(false);
   document.getElementById('detail-overlay').classList.remove('open');
-  document.body.style.overflow=''; currentMail=null;
+  document.body.style.overflow='';currentMail=null;
+}
+function handleOverlayClick(e){if(e.target===document.getElementById('detail-overlay'))closeDetail();}
+function getAcct(email){return accounts.find(a=>a.email===email);}
+
+async function markRead(){if(!currentMail)return;const acct=getAcct(currentMail.acct);if(!acct)return;try{await gmailPost(acct,`messages/${currentMail.id}/modify`,{removeLabelIds:['UNREAD']});emails.unread=emails.unread.map(m=>m.id===currentMail.id?{...m,isUnread:false}:m);renderMailList();updateBadges();closeDetail();showToast('✓ 既読にしました');}catch(e){showToast('⚠ '+e.message);}}
+async function markUnread(){if(!currentMail)return;const acct=getAcct(currentMail.acct);if(!acct)return;try{await gmailPost(acct,`messages/${currentMail.id}/modify`,{addLabelIds:['UNREAD']});emails.unread=emails.unread.map(m=>m.id===currentMail.id?{...m,isUnread:true}:m);renderMailList();updateBadges();closeDetail();showToast('● 未読に戻しました');}catch(e){showToast('⚠ '+e.message);}}
+
+async function toggleStar(){
+  if(!currentMail)return;
+  const acct=getAcct(currentMail.acct);if(!acct)return;
+  const addStar=!currentMail.isStarred;
+  try{
+    await gmailPost(acct,`messages/${currentMail.id}/modify`,addStar?{addLabelIds:['STARRED']}:{removeLabelIds:['STARRED']});
+    currentMail.isStarred=addStar;
+    emails.unread=emails.unread.map(m=>m.id===currentMail.id?{...m,isStarred:addStar}:m);
+    emails.starred=emails.starred.map(m=>m.id===currentMail.id?{...m,isStarred:addStar}:m);
+    if(addStar&&!emails.starred.find(m=>m.id===currentMail.id))emails.starred.unshift({...currentMail});
+    else if(!addStar)emails.starred=emails.starred.filter(m=>m.id!==currentMail.id);
+    updateStarBtn(addStar);renderMailList();updateBadges();
+    showToast(addStar?'★ スターを付けました':'☆ スターを外しました');
+  }catch(e){showToast('⚠ '+e.message);}
 }
 
-function handleOverlayClick(e) { if(e.target===document.getElementById('detail-overlay')) closeDetail(); }
-
-function getAcct(email) { return accounts.find(a=>a.email===email); }
-
-async function markRead() {
-  if(!currentMail) return;
-  const acct=getAcct(currentMail.acct); if(!acct) return;
-  try {
-    await gmailPost(acct,`messages/${currentMail.id}/modify`,{removeLabelIds:['UNREAD']});
-    emails.unread=emails.unread.map(m=>m.id===currentMail.id?{...m,isUnread:false}:m);
-    renderMailList(); updateBadges(); closeDetail(); showToast('✓ 既読にしました');
-  } catch(e) { showToast('⚠ '+e.message); }
-}
-
-async function markUnread() {
-  if(!currentMail) return;
-  const acct=getAcct(currentMail.acct); if(!acct) return;
-  try {
-    await gmailPost(acct,`messages/${currentMail.id}/modify`,{addLabelIds:['UNREAD']});
-    emails.unread=emails.unread.map(m=>m.id===currentMail.id?{...m,isUnread:true}:m);
-    renderMailList(); updateBadges(); closeDetail(); showToast('● 未読に戻しました');
-  } catch(e) { showToast('⚠ '+e.message); }
-}
-
-// Reply
-function toggleReply() {
+// ── Reply ──
+function toggleReply(){
   const panel=document.getElementById('reply-panel');
-  if(panel.classList.contains('open')) { closeReply(); return; }
+  if(panel.classList.contains('open')){closeReply();return;}
   panel.classList.add('open');
   document.getElementById('reply-to-addr').textContent=currentMail?.fromEmail||currentMail?.from||'—';
   const orig=(currentMail?.body||currentMail?.snippet||'').trim();
   const qb=document.getElementById('reply-quote-block');
-  if(orig){ document.getElementById('reply-quote-text').textContent=orig.slice(0,300)+(orig.length>300?'…':''); qb.style.display=''; }
-  else qb.style.display='none';
+  if(orig){document.getElementById('reply-quote-text').textContent=orig.slice(0,300)+(orig.length>300?'…':'');qb.style.display='';}else qb.style.display='none';
   const ta=document.getElementById('reply-textarea');
   const saved=loadDraft(currentMail?.id||'');
-  if(saved){ ta.value=saved; showDraftInd(true); }
-  else { const sig=signature.trim(); ta.value=sig?`\n\n--\n${sig}`:''; }
-  setTimeout(()=>{ ta.focus(); ta.setSelectionRange(0,0); ta.scrollTop=0; },360);
-  ta.oninput=()=>{ clearTimeout(draftTimer); draftTimer=setTimeout(()=>{ saveDraft(currentMail?.id||'',ta.value); showDraftInd(true); },800); };
+  if(saved){ta.value=saved;showDraftInd(true);}else{const sig=signature.trim();ta.value=sig?`\n\n--\n${sig}`:''; }
+  setTimeout(()=>{ta.focus();ta.setSelectionRange(0,0);ta.scrollTop=0;},360);
+  ta.oninput=()=>{clearTimeout(draftTimer);draftTimer=setTimeout(()=>{saveDraft(currentMail?.id||'',ta.value);showDraftInd(true);},800);};
 }
+function closeReply(){const ta=document.getElementById('reply-textarea');if(currentMail?.id&&ta.value.trim())saveDraft(currentMail.id,ta.value);document.getElementById('reply-panel').classList.remove('open');ta.oninput=null;showDraftInd(false);}
 
-function closeReply() {
-  const ta=document.getElementById('reply-textarea');
-  if(currentMail?.id&&ta.value.trim()) saveDraft(currentMail.id,ta.value);
-  document.getElementById('reply-panel').classList.remove('open');
-  ta.oninput=null; showDraftInd(false);
-}
-
-async function sendReply() {
-  if(!currentMail) return;
-  const ta=document.getElementById('reply-textarea'), body=ta.value.trim();
-  if(!body){ showToast('⚠ 本文を入力してください'); return; }
-  const acct=getAcct(currentMail.acct); if(!acct){ showToast('⚠ アカウント不明'); return; }
-  const btn=document.getElementById('reply-send-btn'), lbl=document.getElementById('reply-send-label'), spn=document.getElementById('reply-spinner');
-  btn.disabled=true; lbl.style.display='none'; spn.style.display='block';
-  try {
+async function sendReply(){
+  if(!currentMail)return;
+  const ta=document.getElementById('reply-textarea'),body=ta.value.trim();
+  if(!body){showToast('⚠ 本文を入力してください');return;}
+  const acct=getAcct(currentMail.acct);if(!acct){showToast('⚠ アカウント不明');return;}
+  const btn=document.getElementById('reply-send-btn'),lbl=document.getElementById('reply-send-label'),spn=document.getElementById('reply-spinner');
+  btn.disabled=true;lbl.style.display='none';spn.style.display='block';
+  try{
     const to=currentMail.fromEmail||currentMail.from;
     const subj=currentMail.subject?.startsWith('Re:')?currentMail.subject:`Re: ${currentMail.subject||''}`;
     const orig=(currentMail.body||currentMail.snippet||'').trim();
@@ -918,181 +814,92 @@ async function sendReply() {
     clearDraft(currentMail.id);
     await gmailPost(acct,`messages/${currentMail.id}/modify`,{removeLabelIds:['UNREAD']});
     emails.unread=emails.unread.map(m=>m.id===currentMail.id?{...m,isUnread:false}:m);
-    renderMailList(); updateBadges(); closeReply(); closeDetail(); showToast('✉ 返信を送信しました');
-  } catch(e){ showToast('⚠ 送信失敗: '+e.message); }
-  finally{ btn.disabled=false; lbl.style.display=''; spn.style.display='none'; }
+    renderMailList();updateBadges();closeReply();closeDetail();showToast('✉ 返信を送信しました');
+  }catch(e){showToast('⚠ 送信失敗: '+e.message);}
+  finally{btn.disabled=false;lbl.style.display='';spn.style.display='none';}
 }
 
-async function toggleStar() {
-  if (!currentMail) return;
-  const acct = getAcct(currentMail.acct); if (!acct) return;
-  const addStar = !currentMail.isStarred;
-  try {
-    if (addStar) {
-      await gmailPost(acct, `messages/${currentMail.id}/modify`, { addLabelIds: ['STARRED'] });
-    } else {
-      await gmailPost(acct, `messages/${currentMail.id}/modify`, { removeLabelIds: ['STARRED'] });
-    }
-    currentMail.isStarred = addStar;
-    emails.unread = emails.unread.map(m => m.id===currentMail.id ? {...m, isStarred:addStar} : m);
-    emails.starred = emails.starred.map(m => m.id===currentMail.id ? {...m, isStarred:addStar} : m);
-    if (addStar && !emails.starred.find(m=>m.id===currentMail.id)) {
-      emails.starred.unshift({...currentMail});
-    } else if (!addStar) {
-      emails.starred = emails.starred.filter(m=>m.id!==currentMail.id);
-    }
-    updateStarBtn(addStar);
-    renderMailList(); updateBadges();
-    showToast(addStar ? '★ スターを付けました' : '☆ スターを外しました');
-  } catch(e) { showToast('⚠ ' + e.message); }
+function toBase64UTF8(str){const bytes=new TextEncoder().encode(str);let b='';for(const x of bytes)b+=String.fromCharCode(x);return btoa(b);}
+function buildRaw(to,subj,body){
+  const lines=[`To: ${to}`,`Subject: =?UTF-8?B?${toBase64UTF8(subj)}?=`,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',toBase64UTF8(body)];
+  const raw=lines.join('\r\n');const bytes=new TextEncoder().encode(raw);let b='';for(const x of bytes)b+=String.fromCharCode(x);
+  return btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 
-// UTF-8 safe base64 encoding
-function toBase64UTF8(str) {
-  const bytes = new TextEncoder().encode(str);
-  let binary = '';
-  for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary);
+function getDraftKey(id){return `mf-draft-${id}`;}
+function loadDraft(id){try{return localStorage.getItem(getDraftKey(id))||'';}catch{return '';}}
+function saveDraft(id,t){try{t.trim()?localStorage.setItem(getDraftKey(id),t):localStorage.removeItem(getDraftKey(id));}catch{}}
+function clearDraft(id){try{localStorage.removeItem(getDraftKey(id));}catch{}}
+function showDraftInd(v){document.getElementById('draft-indicator').classList.toggle('visible',v);}
+
+function switchView(view){
+  ['mail','todo'].forEach(v=>{document.getElementById(`view-${v}`).classList.toggle('active',v===view);document.getElementById(`nav-${v}`).classList.toggle('active',v===view);});
+  const bmt=document.getElementById('bottom-mail-tabs');
+  bmt.classList.toggle('visible',view==='mail');
+  if(view==='mail')renderAcctFilter();
 }
 
-function buildRaw(to, subj, body) {
-  const subjEncoded = '=?UTF-8?B?' + toBase64UTF8(subj) + '?=';
-  const bodyEncoded = toBase64UTF8(body);
-  const lines = [
-    `To: ${to}`,
-    `Subject: ${subjEncoded}`,
-    'MIME-Version: 1.0',
-    'Content-Type: text/plain; charset=UTF-8',
-    'Content-Transfer-Encoding: base64',
-    '',
-    bodyEncoded
-  ];
-  // URL-safe base64 for the whole RFC2822 message
-  const raw = lines.join('\r\n');
-  const bytes = new TextEncoder().encode(raw);
-  let binary = '';
-  for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
+// ── ToDo ──
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+const PLABELS={none:'',p3:'!',p2:'!!',p1:'!!!'};
+const PORDER={none:0,p3:1,p2:2,p1:3};
 
-function getDraftKey(id){ return `mf-draft-${id}`; }
-function loadDraft(id){ try{ return localStorage.getItem(getDraftKey(id))||''; }catch{ return ''; } }
-function saveDraft(id,t){ try{ t.trim()?localStorage.setItem(getDraftKey(id),t):localStorage.removeItem(getDraftKey(id)); }catch{} }
-function clearDraft(id){ try{ localStorage.removeItem(getDraftKey(id)); }catch{} }
-function showDraftInd(v){ document.getElementById('draft-indicator').classList.toggle('visible',v); }
-
-function switchView(view) {
-  ['mail','todo'].forEach(v=>{ document.getElementById(`view-${v}`).classList.toggle('active',v===view); document.getElementById(`nav-${v}`).classList.toggle('active',v===view); });
-  document.getElementById('mail-tabs-bar').style.display=view==='mail'?'':'none';
-  if(view==='mail') renderAcctFilter();
-}
-
-// ══════════════════════════════════
-// TODO
-// ══════════════════════════════════
-function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-const PLABELS = { none:'', p3:'!', p2:'!!', p1:'!!!' };
-const PORDER = { none:0, p3:1, p2:2, p1:3 };
-
-function sortItems(items) {
-  const pending=items.filter(i=>!i.done), done=items.filter(i=>i.done);
+function sortItems(items){
+  const pending=items.filter(i=>!i.done),done=items.filter(i=>i.done);
   const sort=arr=>{
-    if(sortMode==='added') return [...arr].sort((a,b)=>a.createdAt-b.createdAt);
-    if(sortMode==='date') return [...arr].sort((a,b)=>{
-      const da=a.dueDate?new Date(`${a.dueDate}T${a.dueTime||'00:00'}`):null;
-      const db=b.dueDate?new Date(`${b.dueDate}T${b.dueTime||'00:00'}`):null;
-      if(!da&&!db) return a.createdAt-b.createdAt;
-      if(!da) return 1; if(!db) return -1;
-      return da-db||a.createdAt-b.createdAt;
-    });
-    if(sortMode==='priority') return [...arr].sort((a,b)=>(PORDER[b.priority||'none']-PORDER[a.priority||'none'])||a.createdAt-b.createdAt);
+    if(sortMode==='added')return[...arr].sort((a,b)=>a.createdAt-b.createdAt);
+    if(sortMode==='date')return[...arr].sort((a,b)=>{const da=a.dueDate?new Date(`${a.dueDate}T${a.dueTime||'00:00'}`):null,db=b.dueDate?new Date(`${b.dueDate}T${b.dueTime||'00:00'}`):null;if(!da&&!db)return a.createdAt-b.createdAt;if(!da)return 1;if(!db)return-1;return da-db||a.createdAt-b.createdAt;});
+    if(sortMode==='priority')return[...arr].sort((a,b)=>(PORDER[b.priority||'none']-PORDER[a.priority||'none'])||a.createdAt-b.createdAt);
     return arr;
   };
-  return [...sort(pending), ...[...done].sort((a,b)=>(b.doneAt||0)-(a.doneAt||0))];
+  return[...sort(pending),...[...done].sort((a,b)=>(b.doneAt||0)-(a.doneAt||0))];
 }
 
-function toggleShowDone() {
-  showDone=!showDone; dbSet('showDone',showDone);
-  const btn=document.getElementById('show-done-btn');
-  btn.textContent=showDone?'完了済みを非表示':'完了済みを表示';
-  btn.classList.toggle('active',showDone);
-  renderTodos();
-}
+function toggleShowDone(){showDone=!showDone;dbSet('showDone',showDone);const btn=document.getElementById('show-done-btn');btn.textContent=showDone?'完了済みを非表示':'完了済みを表示';btn.classList.toggle('active',showDone);renderTodos();}
+function cycleSortMode(){const modes=['added','date','priority'],labels={added:'追加順 ↕',date:'日付順 📅',priority:'優先度順 ⚡'};sortMode=modes[(modes.indexOf(sortMode)+1)%modes.length];document.getElementById('sort-btn').textContent=labels[sortMode];dbSet('sortMode',sortMode);renderTodos();}
 
-function cycleSortMode() {
-  const modes=['added','date','priority'], labels={added:'追加順 ↕',date:'日付順 📅',priority:'優先度順 ⚡'};
-  sortMode=modes[(modes.indexOf(sortMode)+1)%modes.length];
-  document.getElementById('sort-btn').textContent=labels[sortMode];
-  dbSet('sortMode',sortMode); renderTodos();
-}
-
-function renderTodos() {
-  const c=document.getElementById('todo-groups-container');
-  if(!c) return;
+function renderTodos(){
+  const c=document.getElementById('todo-groups-container');if(!c)return;
   const labels={added:'追加順 ↕',date:'日付順 📅',priority:'優先度順 ⚡'};
-  const sb=document.getElementById('sort-btn'); if(sb) sb.textContent=labels[sortMode];
-  const sdb=document.getElementById('show-done-btn');
-  if(sdb){ sdb.textContent=showDone?'完了済みを非表示':'完了済みを表示'; sdb.classList.toggle('active',showDone); }
+  const sb=document.getElementById('sort-btn');if(sb)sb.textContent=labels[sortMode];
+  const sdb=document.getElementById('show-done-btn');if(sdb){sdb.textContent=showDone?'完了済みを非表示':'完了済みを表示';sdb.classList.toggle('active',showDone);}
   const pending=todoGroups.flatMap(g=>g.items).filter(i=>!i.done).length;
   document.getElementById('nav-todo').classList.toggle('has-dot',pending>0);
-
   c.innerHTML=todoGroups.map(g=>{
     const sorted=sortItems(g.items);
     const visible=showDone?sorted:sorted.filter(i=>!i.done);
-    const pCount=g.items.filter(i=>!i.done).length;
-
-    const addHtml=addingToGroup===g.id?`
-      <div class="edit-panel">
-        <div class="edit-row"><span class="edit-label">タスク</span><input type="text" class="edit-input" id="gadd-text-${g.id}" placeholder="タスク名…" maxlength="200"></div>
-        <div class="edit-row"><span class="edit-label">優先度</span><div class="priority-btns" id="gadd-prio-${g.id}" data-v="none">${renderPrioBtns('none','gadd-prio-'+g.id,g.id,true)}</div></div>
-        <div class="edit-row"><span class="edit-label">日付</span><input type="date" class="edit-input" id="gadd-date-${g.id}"><input type="time" class="edit-input" id="gadd-time-${g.id}" style="max-width:95px"></div>
-        <div class="edit-actions"><button class="edit-cancel" onclick="cancelGroupAdd()">キャンセル</button><button class="edit-save" onclick="submitGroupAdd('${g.id}')">追加</button></div>
-      </div>`:'' ;
-
-    const itemsHtml=visible.map(item=>renderItem(item,g.id)).join('');
+    const pc=g.items.filter(i=>!i.done).length;
+    const addH=addingToGroup===g.id?`<div class="edit-panel">
+      <div class="edit-row"><span class="edit-label">タスク</span><input type="text" class="edit-input" id="gadd-text-${g.id}" placeholder="タスク名…" maxlength="200" autocomplete="off"></div>
+      <div class="edit-row"><span class="edit-label">優先度</span><div class="priority-btns" id="gadd-prio-${g.id}" data-v="none">${renderPrioBtns('none','gadd-prio-'+g.id,g.id,true)}</div></div>
+      <div class="edit-row"><span class="edit-label">日付</span><input type="date" class="edit-input" id="gadd-date-${g.id}"><input type="time" class="edit-input" id="gadd-time-${g.id}" style="max-width:95px"></div>
+      <div class="edit-actions"><button class="edit-cancel" onclick="cancelGroupAdd()">キャンセル</button><button class="edit-save" onclick="submitGroupAdd('${g.id}')">追加</button></div>
+    </div>`:'';
     return `<div class="todo-group">
-      <div class="todo-group-header">
-        <span class="todo-group-name">${esc(g.name)}</span>
-        <span class="todo-group-count">${pCount}件</span>
-        <button class="todo-group-add" onclick="startGroupAdd('${g.id}')">＋</button>
-      </div>
-      ${addHtml}<div>${itemsHtml}</div>
+      <div class="todo-group-header"><span class="todo-group-name">${esc(g.name)}</span><span class="todo-group-count">${pc}件</span><button class="todo-group-add" onclick="startGroupAdd('${g.id}')">＋</button></div>
+      ${addH}<div>${visible.map(item=>renderItem(item,g.id)).join('')}</div>
     </div>`;
   }).join('');
-
-  if(addingToGroup){ setTimeout(()=>document.getElementById(`gadd-text-${addingToGroup}`)?.focus(),50); }
+  if(addingToGroup){setTimeout(()=>document.getElementById(`gadd-text-${addingToGroup}`)?.focus(),50);}
 }
 
-function renderPrioBtns(current, containerId, groupId, isAdd) {
-  return ['none','p3','p2','p1'].map(p=>{
+function renderPrioBtns(current,cid,gid,isAdd){
+  return['none','p3','p2','p1'].map(p=>{
     const lbl=p==='none'?'なし':PLABELS[p];
-    const fn=isAdd?`selectGAddPrio('${groupId}','${p}','${containerId}')`:`selectPrio('${containerId}','${p}')`;
+    const fn=isAdd?`selectGAddPrio('${gid}','${p}','${cid}')`:`selectPrio('${cid}','${p}')`;
     return `<button class="prio-btn ${p===current?'active-'+p:''}" onclick="${fn}">${lbl}</button>`;
   }).join('');
 }
+function selectPrio(cid,p){const c=document.getElementById(cid);if(!c)return;c.dataset.v=p;c.querySelectorAll('.prio-btn').forEach(b=>b.className='prio-btn');c.querySelector(`[onclick*=",'${p}')"]`)?.classList.add('active-'+p);}
+function selectGAddPrio(gid,p,cid){selectPrio(cid,p);}
 
-function selectPrio(containerId, p) {
-  const c=document.getElementById(containerId); if(!c) return;
-  c.dataset.v=p;
-  c.querySelectorAll('.prio-btn').forEach(b=>b.className='prio-btn');
-  c.querySelector(`[onclick*=",'${p}')"]`)?.classList.add('active-'+p);
-}
-
-function selectGAddPrio(groupId, p, containerId) { selectPrio(containerId, p); }
-
-function renderItem(item, gid) {
-  const prio=item.priority||'none';
-  const prioLbl=PLABELS[prio];
+function renderItem(item,gid){
+  const prio=item.priority||'none',prioLbl=PLABELS[prio];
   const prioClass=prio!=='none'?`todo-priority ${prio}`:'';
   let datePart='';
-  if(item.dueDate){
-    const d=new Date(`${item.dueDate}T${item.dueTime||'00:00'}`);
-    const over=!item.done&&d<new Date();
-    const fmt=item.dueTime?d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'})+' '+item.dueTime:d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});
-    datePart=`<span class="todo-date-tag ${over?'overdue':''}">${fmt}</span>`;
-  }
-  if(editingId===item.id) return renderEditPanel(item,gid);
-  return `<div class="todo-item ${item.done?'done':''}" id="item-${item.id}">
+  if(item.dueDate){const d=new Date(`${item.dueDate}T${item.dueTime||'00:00'}`);const over=!item.done&&d<new Date();const fmt=item.dueTime?d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'})+' '+item.dueTime:d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});datePart=`<span class="todo-date-tag ${over?'overdue':''}">${fmt}</span>`;}
+  if(editingId===item.id)return renderEditPanel(item,gid);
+  return `<div class="todo-item ${item.done?'done':''}">
     <button class="todo-check" onclick="toggleItem('${gid}','${item.id}')"><span class="todo-check-icon">✓</span></button>
     <div class="todo-body">
       <div class="todo-text">${esc(item.text)}</div>
@@ -1105,101 +912,79 @@ function renderItem(item, gid) {
   </div>`;
 }
 
-function renderEditPanel(item,gid) {
-  const p=item.priority||'none';
-  const cid=`eprio-${item.id}`;
+function renderEditPanel(item,gid){
+  const p=item.priority||'none',cid=`eprio-${item.id}`;
   return `<div class="edit-panel">
-    <div class="edit-row"><span class="edit-label">タスク</span><input type="text" class="edit-input" id="etext-${item.id}" value="${esc(item.text)}" maxlength="200"></div>
+    <div class="edit-row"><span class="edit-label">タスク</span><input type="text" class="edit-input" id="etext-${item.id}" value="${esc(item.text)}" maxlength="200" autocomplete="off"></div>
     <div class="edit-row"><span class="edit-label">優先度</span><div class="priority-btns" id="${cid}" data-v="${p}">${renderPrioBtns(p,cid,gid,false)}</div></div>
     <div class="edit-row"><span class="edit-label">日付</span><input type="date" class="edit-input" id="edate-${item.id}" value="${item.dueDate||''}"><input type="time" class="edit-input" id="etime-${item.id}" value="${item.dueTime||''}" style="max-width:95px"></div>
     <div class="edit-actions"><button class="edit-cancel" onclick="cancelEdit()">キャンセル</button><button class="edit-save" onclick="saveEdit('${gid}','${item.id}')">保存</button></div>
   </div>`;
 }
 
-function addTodo() {
-  const inp=document.getElementById('todo-input'), text=inp.value.trim();
-  if(!text) return;
-  const g=todoGroups[0]; if(!g) return;
-  g.items.push({id:genId(),text,done:false,priority:'none',dueDate:'',dueTime:'',createdAt:Date.now()});
-  inp.value=''; saveTodosDB(); renderTodos();
-}
-
-function startGroupAdd(gid) { addingToGroup=gid; editingId=null; renderTodos(); }
-function cancelGroupAdd() { addingToGroup=null; renderTodos(); }
-function submitGroupAdd(gid) {
-  const text=document.getElementById(`gadd-text-${gid}`)?.value.trim();
-  if(!text){ showToast('⚠ タスク名を入力してください'); return; }
+function addTodo(){const inp=document.getElementById('todo-input'),text=inp.value.trim();if(!text)return;const g=todoGroups[0];if(!g)return;g.items.push({id:genId(),text,done:false,priority:'none',dueDate:'',dueTime:'',createdAt:Date.now()});inp.value='';saveTodosDB();renderTodos();}
+function startGroupAdd(gid){addingToGroup=gid;editingId=null;renderTodos();}
+function cancelGroupAdd(){addingToGroup=null;renderTodos();}
+function submitGroupAdd(gid){
+  const text=document.getElementById(`gadd-text-${gid}`)?.value.trim();if(!text){showToast('⚠ タスク名を入力してください');return;}
   const prio=document.getElementById(`gadd-prio-${gid}`)?.dataset.v||'none';
   const dueDate=document.getElementById(`gadd-date-${gid}`)?.value||'';
   const dueTime=document.getElementById(`gadd-time-${gid}`)?.value||'';
-  const g=todoGroups.find(g=>g.id===gid); if(!g) return;
+  const g=todoGroups.find(g=>g.id===gid);if(!g)return;
   g.items.push({id:genId(),text,done:false,priority:prio,dueDate,dueTime,createdAt:Date.now()});
-  addingToGroup=null; saveTodosDB(); renderTodos();
+  addingToGroup=null;saveTodosDB();renderTodos();
 }
-
-function toggleItem(gid,iid) {
-  const g=todoGroups.find(g=>g.id===gid); if(!g) return;
-  const item=g.items.find(i=>i.id===iid); if(!item) return;
-  item.done=!item.done; item.doneAt=item.done?Date.now():undefined;
-  saveTodosDB(); renderTodos();
-}
-
-function deleteItem(gid,iid) {
-  const g=todoGroups.find(g=>g.id===gid); if(!g) return;
-  g.items=g.items.filter(i=>i.id!==iid);
-  if(editingId===iid) editingId=null;
-  saveTodosDB(); renderTodos();
-}
-
-function startEdit(iid) { editingId=iid; addingToGroup=null; renderTodos(); setTimeout(()=>document.getElementById(`etext-${iid}`)?.focus(),50); }
-function cancelEdit() { editingId=null; renderTodos(); }
-function saveEdit(gid,iid) {
-  const text=document.getElementById(`etext-${iid}`)?.value.trim();
-  if(!text){ showToast('⚠ タスク名を入力してください'); return; }
+function toggleItem(gid,iid){const g=todoGroups.find(g=>g.id===gid);if(!g)return;const item=g.items.find(i=>i.id===iid);if(!item)return;item.done=!item.done;item.doneAt=item.done?Date.now():undefined;saveTodosDB();renderTodos();}
+function deleteItem(gid,iid){const g=todoGroups.find(g=>g.id===gid);if(!g)return;g.items=g.items.filter(i=>i.id!==iid);if(editingId===iid)editingId=null;saveTodosDB();renderTodos();}
+function startEdit(iid){editingId=iid;addingToGroup=null;renderTodos();setTimeout(()=>document.getElementById(`etext-${iid}`)?.focus(),50);}
+function cancelEdit(){editingId=null;renderTodos();}
+function saveEdit(gid,iid){
+  const text=document.getElementById(`etext-${iid}`)?.value.trim();if(!text){showToast('⚠ タスク名を入力してください');return;}
   const prio=document.getElementById(`eprio-${iid}`)?.dataset.v||'none';
   const dueDate=document.getElementById(`edate-${iid}`)?.value||'';
   const dueTime=document.getElementById(`etime-${iid}`)?.value||'';
-  const g=todoGroups.find(g=>g.id===gid); if(!g) return;
-  const item=g.items.find(i=>i.id===iid); if(!item) return;
-  item.text=text; item.priority=prio; item.dueDate=dueDate; item.dueTime=dueTime;
-  editingId=null; saveTodosDB(); renderTodos();
+  const g=todoGroups.find(g=>g.id===gid);if(!g)return;
+  const item=g.items.find(i=>i.id===iid);if(!item)return;
+  item.text=text;item.priority=prio;item.dueDate=dueDate;item.dueTime=dueTime;
+  editingId=null;saveTodosDB();renderTodos();
 }
 
-function openGroupModal() { document.getElementById('group-modal').classList.add('open'); setTimeout(()=>document.getElementById('group-name-input').focus(),100); }
-function closeGroupModal() { document.getElementById('group-modal').classList.remove('open'); document.getElementById('group-name-input').value=''; }
-function submitAddGroup() {
-  const name=document.getElementById('group-name-input').value.trim();
-  if(!name){ showToast('⚠ グループ名を入力してください'); return; }
-  todoGroups.push({id:genId(),name,items:[]}); closeGroupModal(); saveTodosDB(); renderTodos();
-}
-document.getElementById('group-name-input')?.addEventListener('keydown',e=>{ if(e.key==='Enter') submitAddGroup(); });
-document.getElementById('todo-input')?.addEventListener('keydown',e=>{ if(e.key==='Enter') addTodo(); });
+function openGroupModal(){document.getElementById('group-modal').classList.add('open');setTimeout(()=>document.getElementById('group-name-input').focus(),100);}
+function closeGroupModal(){document.getElementById('group-modal').classList.remove('open');document.getElementById('group-name-input').value='';}
+function submitAddGroup(){const name=document.getElementById('group-name-input').value.trim();if(!name){showToast('⚠ グループ名を入力してください');return;}todoGroups.push({id:genId(),name,items:[]});closeGroupModal();saveTodosDB();renderTodos();}
+document.getElementById('group-name-input')?.addEventListener('keydown',e=>{if(e.key==='Enter')submitAddGroup();});
+document.getElementById('todo-input')?.addEventListener('keydown',e=>{if(e.key==='Enter')addTodo();});
 
-// Settings
-function openSettings() {
+// ── Settings ──
+function openSettings(){
   document.getElementById('sig-textarea').value=signature;
-  document.getElementById('settings-accounts-list').innerHTML = accounts.map(a => `
-    <div class="account-chip" style="margin-bottom:5px">
-      <div class="account-avatar">${(a.displayName || a.email)[0].toUpperCase()}</div>
+  document.getElementById('settings-accounts-list').innerHTML=accounts.map(a=>{
+    const name=(a.displayName||'').trim()||a.email.split('@')[0];
+    return `<div class="account-chip" style="margin-bottom:5px">
+      <div class="account-avatar">${name[0].toUpperCase()}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.displayName || a.email.split('@')[0])}</div>
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</div>
         <div style="font-size:10px;color:var(--text3);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.email)}</div>
       </div>
       <button class="account-remove" onclick="logoutAccount('${esc(a.email)}')">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   document.getElementById('settings-modal').classList.add('open');
 }
-function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
-function saveSettings() { signature=document.getElementById('sig-textarea').value; dbSet('signature',signature); closeSettings(); showToast('✓ 署名を保存しました'); }
-
-function showSetupGuide() { document.getElementById('guide-origin').textContent=location.origin; document.getElementById('guide-modal').classList.add('open'); }
-function closeGuide() { document.getElementById('guide-modal').classList.remove('open'); }
+function closeSettings(){document.getElementById('settings-modal').classList.remove('open');}
+function saveSettings(){signature=document.getElementById('sig-textarea').value;dbSet('signature',signature);closeSettings();showToast('✓ 署名を保存しました');}
+function showSetupGuide(){document.getElementById('guide-origin').textContent=location.origin;document.getElementById('guide-modal').classList.add('open');}
+function closeGuide(){document.getElementById('guide-modal').classList.remove('open');}
 
 let toastTimer;
-function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2800); }
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+// ── SW ──
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+// ── Init view ──
+switchView('mail');
 </script>
 </body>
 </html>

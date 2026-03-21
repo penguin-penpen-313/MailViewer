@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailFocus セットアップガイド</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f8f7ff;
+      --surface: #ffffff;
+      --accent: #7c6af7;
+      --accent2: #a78bfa;
+      --accent-light: #ede9fe;
+      --text: #1a1a2e;
+      --text2: #4a4a6a;
+      --text3: #9090b8;
+      --border: #e8e6f8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --step-bg: #fdfcff;
+      --font: 'Syne', sans-serif;
+      --mono: 'DM Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.7; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #0a0a0f 0%, #1a1028 100%);
+      color: white;
+      padding: 60px 24px 50px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(124,106,247,0.25) 0%, transparent 70%);
+    }
+    .hero-content { position: relative; max-width: 640px; margin: 0 auto; }
+    .hero-logo { font-size: 36px; font-weight: 800; background: linear-gradient(135deg, #a78bfa, #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+    .hero-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+    .hero-sub { font-size: 14px; color: rgba(255,255,255,0.55); font-family: var(--mono); }
+    .time-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(124,106,247,0.2); border: 1px solid rgba(167,139,250,0.3); border-radius: 100px; padding: 6px 16px; font-size: 13px; color: #a78bfa; margin-top: 16px; font-family: var(--mono); }
+
+    /* ── Layout ── */
+    .container { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    /* ── Overview Cards ── */
+    .overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 48px; }
+    @media (max-width: 500px) { .overview { grid-template-columns: 1fr; } }
+    .overview-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 16px; text-align: center; }
+    .overview-icon { font-size: 28px; margin-bottom: 8px; }
+    .overview-label { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .overview-desc { font-size: 12px; color: var(--text3); }
+
+    /* ── Section Title ── */
+    .section-title { font-size: 11px; font-family: var(--mono); color: var(--text3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── Step Cards ── */
+    .steps { display: flex; flex-direction: column; gap: 16px; margin-bottom: 48px; }
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 20px 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .step-num {
+      width: 34px; height: 34px;
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .step.done .step-num { background: var(--success); }
+    .step-title { font-size: 16px; font-weight: 700; flex: 1; }
+    .step-badge { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border-radius: 20px; background: var(--accent-light); color: var(--accent); }
+    .step-arrow { color: var(--text3); font-size: 18px; transition: transform 0.2s; flex-shrink: 0; }
+    .step.open .step-arrow { transform: rotate(180deg); }
+
+    .step-body { padding: 0 20px 20px; display: none; border-top: 1px solid var(--border); }
+    .step.open .step-body { display: block; padding-top: 18px; }
+
+    /* ── Sub Steps ── */
+    .sub-steps { display: flex; flex-direction: column; gap: 20px; }
+    .sub-step { display: flex; gap: 14px; }
+    .sub-num {
+      width: 26px; height: 26px;
+      border: 2px solid var(--accent);
+      color: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .sub-content { flex: 1; }
+    .sub-title { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+    .sub-desc { font-size: 13px; color: var(--text2); line-height: 1.65; }
+
+    /* ── UI Mock ── */
+    .ui-mock {
+      background: #1a1a2e;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin: 10px 0;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #a78bfa;
+      position: relative;
+    }
+    .ui-mock .path { color: #6ee7b7; }
+    .ui-mock .value { color: #fcd34d; }
+    .ui-mock .comment { color: #6b7280; }
+    .mock-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .mock-row:last-child { margin-bottom: 0; }
+    .mock-label { color: #9090b8; font-size: 11px; }
+    .mock-input { background: #2a2a40; border: 1px solid #3a3a58; border-radius: 6px; padding: 4px 10px; color: #e8e8f0; font-size: 11px; }
+    .mock-btn { background: white; color: #1a1a2e; border-radius: 6px; padding: 4px 12px; font-size: 11px; font-weight: 700; }
+
+    /* ── Screen Mock ── */
+    .screen-mock {
+      background: #f1f3f4;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 12px 0;
+      font-size: 13px;
+      border: 1px solid #e0e0e0;
+    }
+    .screen-mock .screen-title { font-weight: 700; font-size: 14px; margin-bottom: 10px; color: #202124; }
+    .menu-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; color: #3c4043; font-size: 13px; }
+    .menu-item:hover { background: #e8eaed; }
+    .menu-item.active { background: #e8f0fe; color: #1a73e8; font-weight: 600; }
+    .menu-icon { font-size: 16px; width: 22px; text-align: center; }
+    .arrow-right { color: #80868b; margin-left: auto; font-size: 11px; }
+
+    /* ── Alert Box ── */
+    .alert { border-radius: 10px; padding: 14px 16px; margin: 12px 0; font-size: 13px; line-height: 1.65; display: flex; gap: 10px; }
+    .alert-warn { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+    .alert-info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+    .alert-success { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
+    .alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Code block ── */
+    .code-block { background: #1a1a2e; border-radius: 10px; padding: 14px 16px; font-family: var(--mono); font-size: 12px; color: #a78bfa; margin: 10px 0; word-break: break-all; }
+    .code-block .hl { color: #6ee7b7; }
+
+    /* ── Link ── */
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Final CTA ── */
+    .cta-card { background: linear-gradient(135deg, #0a0a0f, #1a1028); border-radius: 20px; padding: 36px 28px; text-align: center; color: white; }
+    .cta-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .cta-sub { font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 24px; }
+    .cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .cta-btn { padding: 12px 24px; border-radius: 10px; font-family: var(--font); font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+    .cta-btn-primary { background: var(--accent); color: white; }
+    .cta-btn-primary:hover { background: var(--accent2); text-decoration: none; }
+    .cta-btn-secondary { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+
+    /* ── Toggle ── */
+    .step-header:hover { background: #fafaf8; }
+  </style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-content">
+    <div class="hero-logo">MailFocus</div>
+    <div class="hero-title">セットアップガイド</div>
+    <div class="hero-sub">Google OAuth2 + Gmail API の設定手順</div>
+    <div class="time-badge">⏱ 所要時間: 約10〜15分</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Overview -->
+  <div class="overview">
+    <div class="overview-card">
+      <div class="overview-icon">☁️</div>
+      <div class="overview-label">Google Cloud</div>
+      <div class="overview-desc">無料アカウントでOK</div>
+    </div>
+    <div class="overview-card">
+      <div class="overview-icon">🔑</div>
+      <div class="overview-label">Client ID取得</div>
+      <div class="overview-desc">5ステップで完了</div>
+    </div>
+    <div class="overview-card">
+      <div class="overview-icon">🚀</div>
+      <div class="overview-label">Netlifyで公開</div>
+      <div class="overview-desc">ドラッグだけ</div>
+    </div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="section-title">手順</div>
+  <div class="steps">
+
+    <div class="step open" id="s1">
+      <div class="step-header" onclick="toggle('s1')">
+        <div class="step-num">1</div>
+        <div class="step-title">Google Cloud Console を開く</div>
+        <div class="step-arrow">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sub-steps">
+          <div class="sub-step">
+            <div class="sub-num">1</div>
+            <div class="sub-content">
+              <div class="sub-title">ブラウザで以下のURLを開く</div>
+              <div class="code-block"><span class="hl">https://console.cloud.google.com/</span></div>
+              <div class="sub-desc">Googleアカウントでログインしてください。アカウントがない場合は無料で作成できます。</div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">2</div>
+            <div class="sub-content">
+              <div class="sub-title">新しいプロジェクトを作成</div>
+              <div class="screen-mock">
+                <div class="screen-title">Google Cloud Console</div>
+                <div class="menu-item active"><span class="menu-icon">📁</span> プロジェクトの選択 ▾</div>
+                <div style="padding:8px 10px;font-size:12px;color:#5f6368">↓ 「新しいプロジェクト」をクリック</div>
+                <div class="menu-item"><span class="menu-icon">＋</span> 新しいプロジェクト <span class="arrow-right">→</span></div>
+              </div>
+              <div class="sub-desc">プロジェクト名は <strong>MailFocus</strong> など何でもOKです。「作成」をクリック。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" id="s2">
+      <div class="step-header" onclick="toggle('s2')">
+        <div class="step-num">2</div>
+        <div class="step-title">Gmail API を有効にする</div>
+        <div class="step-arrow">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sub-steps">
+          <div class="sub-step">
+            <div class="sub-num">1</div>
+            <div class="sub-content">
+              <div class="sub-title">左メニューから「APIとサービス」を選択</div>
+              <div class="screen-mock">
+                <div class="screen-title">左側メニュー</div>
+                <div class="menu-item"><span class="menu-icon">🏠</span> ホーム</div>
+                <div class="menu-item active"><span class="menu-icon">🔌</span> APIとサービス <span class="arrow-right">▸</span></div>
+                <div class="menu-item" style="padding-left:36px;font-size:12px"><span class="menu-icon">📚</span> ライブラリ</div>
+              </div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">2</div>
+            <div class="sub-content">
+              <div class="sub-title">「ライブラリ」→ 「Gmail API」を検索</div>
+              <div class="sub-desc">検索欄に <strong>Gmail</strong> と入力すると「Gmail API」が表示されます。クリックして「<strong>有効にする</strong>」ボタンを押してください。</div>
+              <div class="alert alert-success">
+                <div class="alert-icon">✅</div>
+                <div>「APIが有効です」と表示されれば完了です</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" id="s3">
+      <div class="step-header" onclick="toggle('s3')">
+        <div class="step-num">3</div>
+        <div class="step-title">OAuth 同意画面を設定する</div>
+        <div class="step-badge">重要</div>
+        <div class="step-arrow">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="alert alert-info">
+          <div class="alert-icon">ℹ️</div>
+          <div>この設定をしないとClient IDが作れません。手順通りに進めてください。</div>
+        </div>
+        <div class="sub-steps">
+          <div class="sub-step">
+            <div class="sub-num">1</div>
+            <div class="sub-content">
+              <div class="sub-title">「APIとサービス」→「OAuth同意画面」を開く</div>
+              <div class="screen-mock">
+                <div class="screen-title">APIとサービス</div>
+                <div class="menu-item"><span class="menu-icon">🔑</span> 認証情報</div>
+                <div class="menu-item active"><span class="menu-icon">📋</span> OAuth同意画面 <span class="arrow-right">←ここ</span></div>
+                <div class="menu-item"><span class="menu-icon">📚</span> ライブラリ</div>
+              </div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">2</div>
+            <div class="sub-content">
+              <div class="sub-title">ユーザーの種類: 「外部」を選択して「作成」</div>
+              <div class="sub-desc">個人利用の場合は「外部」でOKです。</div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">3</div>
+            <div class="sub-content">
+              <div class="sub-title">アプリ情報を入力</div>
+              <div class="screen-mock">
+                <div class="mock-row"><span class="mock-label">アプリ名</span><span class="mock-input">MailFocus</span></div>
+                <div class="mock-row"><span class="mock-label">サポートメール</span><span class="mock-input">自分のGmailアドレス</span></div>
+                <div class="mock-row"><span class="mock-label">デベロッパー連絡先</span><span class="mock-input">自分のGmailアドレス</span></div>
+              </div>
+              <div class="sub-desc">入力したら「<strong>保存して次へ</strong>」をクリック。</div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">4</div>
+            <div class="sub-content">
+              <div class="sub-title">スコープはそのまま「保存して次へ」</div>
+              <div class="sub-desc">スコープの追加は不要です。そのまま次に進んでください。</div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">5</div>
+            <div class="sub-content">
+              <div class="sub-title">テストユーザーに自分のメールアドレスを追加</div>
+              <div class="sub-desc">「＋ ADD USERS」をクリックして、自分のGmailアドレスを入力。「保存して次へ」で完了。</div>
+              <div class="alert alert-warn">
+                <div class="alert-icon">⚠️</div>
+                <div>テストユーザーに追加したアドレスのみログインできます。必ず自分のアドレスを追加してください。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" id="s4">
+      <div class="step-header" onclick="toggle('s4')">
+        <div class="step-num">4</div>
+        <div class="step-title">OAuth クライアント ID を作成する</div>
+        <div class="step-badge">本題</div>
+        <div class="step-arrow">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sub-steps">
+          <div class="sub-step">
+            <div class="sub-num">1</div>
+            <div class="sub-content">
+              <div class="sub-title">「APIとサービス」→「認証情報」を開く</div>
+              <div class="screen-mock">
+                <div class="screen-title">APIとサービス</div>
+                <div class="menu-item active"><span class="menu-icon">🔑</span> 認証情報 <span class="arrow-right">←ここ</span></div>
+                <div class="menu-item"><span class="menu-icon">📋</span> OAuth同意画面</div>
+              </div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">2</div>
+            <div class="sub-content">
+              <div class="sub-title">「＋ 認証情報を作成」→「OAuthクライアントID」</div>
+              <div class="screen-mock">
+                <div class="screen-title">認証情報ページ上部</div>
+                <div class="menu-item active"><span class="menu-icon">➕</span> 認証情報を作成 ▾</div>
+                <div class="menu-item" style="padding-left:36px"><span class="menu-icon">🔑</span> OAuthクライアントID <span class="arrow-right">←クリック</span></div>
+                <div class="menu-item" style="padding-left:36px"><span class="menu-icon">🔐</span> サービスアカウント</div>
+              </div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">3</div>
+            <div class="sub-content">
+              <div class="sub-title">アプリの種類: 「ウェブアプリケーション」を選択</div>
+              <div class="sub-desc">ドロップダウンから「<strong>ウェブアプリケーション</strong>」を選んでください。</div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">4</div>
+            <div class="sub-content">
+              <div class="sub-title">承認済みのJavaScript生成元にURLを追加</div>
+              <div class="sub-desc">「<strong>承認済みの JavaScript 生成元</strong>」の「＋ URIを追加」をクリックして、アプリを公開するURLを入力します。</div>
+              <div class="screen-mock">
+                <div class="screen-title">入力するURL（どちらか使う方）</div>
+                <div style="display:flex;flex-direction:column;gap:6px;padding:4px 0">
+                  <div style="font-size:12px;color:#5f6368">Netlifyの場合:</div>
+                  <div class="mock-input" style="display:block">https://あなたのサイト名.netlify.app</div>
+                  <div style="font-size:12px;color:#5f6368;margin-top:4px">GitHub Pagesの場合:</div>
+                  <div class="mock-input" style="display:block">https://あなたのID.github.io</div>
+                  <div style="font-size:12px;color:#5f6368;margin-top:4px">ローカルでテストする場合も追加:</div>
+                  <div class="mock-input" style="display:block">http://localhost:8080</div>
+                </div>
+              </div>
+              <div class="alert alert-warn">
+                <div class="alert-icon">⚠️</div>
+                <div>URLは先にNetlifyかGitHub Pagesで公開してから入力するのがベストです。後から追加・変更できます。</div>
+              </div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">5</div>
+            <div class="sub-content">
+              <div class="sub-title">「作成」→ Client IDをコピー</div>
+              <div class="sub-desc">ダイアログに表示される <strong>クライアントID</strong>（<code style="font-family:var(--mono);font-size:12px;background:#f1f0ff;padding:2px 6px;border-radius:4px">xxxxxxxxxx.apps.googleusercontent.com</code> という形式）をコピーしてください。</div>
+              <div class="alert alert-success">
+                <div class="alert-icon">🎉</div>
+                <div>これでClient IDの取得完了です！</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" id="s5">
+      <div class="step-header" onclick="toggle('s5')">
+        <div class="step-num">5</div>
+        <div class="step-title">Netlifyにアップロードして公開する</div>
+        <div class="step-arrow">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sub-steps">
+          <div class="sub-step">
+            <div class="sub-num">1</div>
+            <div class="sub-content">
+              <div class="sub-title">4ファイルを同じフォルダに用意する</div>
+              <div class="code-block">
+                📁 MailFocus/<br>
+                ├── <span class="hl">index.html</span><br>
+                ├── <span class="hl">manifest.json</span><br>
+                ├── <span class="hl">sw.js</span><br>
+                └── README.md
+              </div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">2</div>
+            <div class="sub-content">
+              <div class="sub-title">Netlify を開く</div>
+              <div class="code-block"><span class="hl">https://netlify.com</span></div>
+              <div class="sub-desc">「Sign up」から無料アカウントを作成（GitHubアカウントでもログイン可）。</div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">3</div>
+            <div class="sub-content">
+              <div class="sub-title">フォルダをドラッグ＆ドロップ</div>
+              <div class="screen-mock" style="text-align:center;padding:24px">
+                <div style="font-size:32px;margin-bottom:8px">📁</div>
+                <div style="font-weight:700;margin-bottom:4px">MailFocusフォルダをここにドロップ</div>
+                <div style="font-size:12px;color:#5f6368">Sites ページの下部にドロップゾーンがあります</div>
+              </div>
+              <div class="sub-desc">数秒で公開完了！ <strong>https://ランダム文字.netlify.app</strong> というURLが発行されます。</div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">4</div>
+            <div class="sub-content">
+              <div class="sub-title">発行されたURLをGoogle Cloudに登録</div>
+              <div class="sub-desc">手順4の「承認済みのJavaScript生成元」に、今発行されたNetlifyのURLを追加します。（まだ追加していない場合）</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" id="s6">
+      <div class="step-header" onclick="toggle('s6')">
+        <div class="step-num">6</div>
+        <div class="step-title">アプリにログインする</div>
+        <div class="step-arrow">▾</div>
+      </div>
+      <div class="step-body">
+        <div class="sub-steps">
+          <div class="sub-step">
+            <div class="sub-num">1</div>
+            <div class="sub-content">
+              <div class="sub-title">NetlifyのURLをブラウザで開く</div>
+              <div class="sub-desc">MailFocusのログイン画面が表示されます。</div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">2</div>
+            <div class="sub-content">
+              <div class="sub-title">Client IDを入力して「Googleアカウントでログイン」</div>
+              <div class="screen-mock">
+                <div class="mock-row"><span class="mock-label">Client ID</span></div>
+                <div style="margin:6px 0"><div class="mock-input" style="display:block;word-break:break-all">1234567890-abcd.apps.googleusercontent.com</div></div>
+                <div style="margin-top:10px"><div class="mock-btn" style="display:block;text-align:center;padding:10px">G  Googleアカウントでログイン</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">3</div>
+            <div class="sub-content">
+              <div class="sub-title">Googleの確認画面への対処</div>
+              <div class="alert alert-warn">
+                <div class="alert-icon">⚠️</div>
+                <div>
+                  「このアプリはGoogleで確認されていません」と表示された場合:<br><br>
+                  「<strong>詳細</strong>」をクリック → 「<strong>MailFocusに移動（安全でない）</strong>」をクリック<br><br>
+                  自分で作ったアプリなので安全です。
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">4</div>
+            <div class="sub-content">
+              <div class="sub-title">Gmailへのアクセスを「許可」する</div>
+              <div class="sub-desc">「メールの読み取りと送信を許可する」という画面が出たら「<strong>許可</strong>」をクリック。これでMailFocusが起動します。</div>
+              <div class="alert alert-success">
+                <div class="alert-icon">🎉</div>
+                <div>セットアップ完了！未読メールとスターメールが表示されます。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PWA Install -->
+  <div class="section-title">PWAとしてインストール</div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 20px;margin-bottom:48px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div style="font-weight:700;margin-bottom:8px;font-size:14px">📱 iPhone / iPad</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.7">
+          1. <strong>Safari</strong> でアプリを開く<br>
+          2. 下部の共有ボタン（□↑）をタップ<br>
+          3.「<strong>ホーム画面に追加</strong>」を選択<br>
+          4. 「追加」をタップ
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:700;margin-bottom:8px;font-size:14px">🤖 Android</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.7">
+          1. <strong>Chrome</strong> でアプリを開く<br>
+          2. メニュー（⋮）をタップ<br>
+          3.「<strong>ホーム画面に追加</strong>」を選択<br>
+          4. 「追加」をタップ
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-card">
+    <div class="cta-title">準備完了 🚀</div>
+    <div class="cta-sub">詰まったところがあればお気軽に質問してください</div>
+    <div class="cta-buttons">
+      <a href="https://console.cloud.google.com/" target="_blank" class="cta-btn cta-btn-primary">Google Cloud Consoleを開く</a>
+      <a href="https://netlify.com" target="_blank" class="cta-btn cta-btn-secondary">Netlifyを開く</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggle(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+// Open all by default
+document.querySelectorAll('.step').forEach(s => s.classList.add('open'));
+</script>
+</body>
+</html>
