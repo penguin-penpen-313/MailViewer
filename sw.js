@@ -1,4 +1,4 @@
-const CACHE = 'mailfocus-v1.5';
+const CACHE = 'mailfocus-v001.5';
 const SHELL = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
