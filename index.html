@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MailFocus">
   <link rel="manifest" href="manifest.json">
-  <title>MailFocus v1.5.3</title>
+  <title>MailFocus v1.6</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -98,10 +98,13 @@
     .tag-acct{background:var(--surface2);color:var(--text3);border:1px solid var(--border2);}
     /* Swipe actions */
     .mail-card-wrap{position:relative;overflow:hidden;border-radius:var(--r);margin-bottom:6px;}
-    .swipe-action{position:absolute;right:0;top:0;bottom:0;width:72px;display:flex;align-items:center;justify-content:center;background:rgba(245,158,11,0.85);font-size:20px;border-radius:0 var(--r) var(--r) 0;transform:translateX(100%);transition:transform 0.2s;pointer-events:none;}
-    .swipe-action.on{background:rgba(245,158,11,0.4);}
-    .mail-card-inner{transform:translateX(0);transition:transform 0.2s;background:var(--surface);border-radius:var(--r);will-change:transform;}
-    .mail-card-inner.swiped{transform:translateX(-72px);}
+    .swipe-bg{position:absolute;right:0;top:0;bottom:0;width:100%;display:flex;align-items:center;justify-content:flex-end;padding-right:18px;background:rgba(245,158,11,0.18);border-radius:var(--r);pointer-events:none;transition:background 0.15s;}
+    .swipe-bg.ready{background:rgba(245,158,11,0.55);}
+    .swipe-bg .swipe-star{font-size:22px;opacity:0.5;transition:opacity 0.15s,transform 0.15s;transform:scale(0.8);}
+    .swipe-bg.ready .swipe-star{opacity:1;transform:scale(1.15);}
+    .swipe-bg.starred-bg{background:rgba(245,158,11,0.08);}
+    .mail-card-inner{transform:translateX(0);transition:transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94);background:var(--surface);border-radius:var(--r);will-change:transform;}
+    .mail-card-inner.swiped{transform:translateX(-80px);}
     .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;color:var(--text3);text-align:center;flex:1;}
     .empty-icon{font-size:38px;margin-bottom:9px;}
     .empty-title{font-size:14px;font-weight:700;color:var(--text2);margin-bottom:4px;}
@@ -156,6 +159,28 @@
     .reply-cancel-btn{background:transparent;border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-weight:600;padding:8px 14px;cursor:pointer;}
     .reply-send-btn{background:var(--accent);border:none;border-radius:var(--r);color:white;font-weight:700;padding:8px 18px;cursor:pointer;display:flex;align-items:center;gap:5px;}
     .reply-send-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+    /* Attachments */
+    .attachments-bar{display:flex;gap:6px;padding:8px 16px;border-top:1px solid var(--border);flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .attachments-bar::-webkit-scrollbar{display:none;}
+    .attach-chip{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;}
+    .attach-chip:hover{border-color:var(--accent);background:var(--surface3);}
+    .attach-icon{font-size:14px;}
+    .attach-name{font-size:11px;font-family:var(--mono);color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;}
+    .attach-size{font-size:10px;font-family:var(--mono);color:var(--text3);}
+    /* Thread */
+    .thread-toggle{display:flex;align-items:center;gap:6px;padding:7px 16px;border-top:1px solid var(--border);cursor:pointer;font-size:11px;font-family:var(--mono);color:var(--text3);background:var(--surface2);flex-shrink:0;transition:background 0.2s;}
+    .thread-toggle:hover{background:var(--surface3);}
+    .thread-count{background:var(--surface3);border-radius:10px;padding:1px 7px;font-size:10px;color:var(--text2);}
+    .thread-messages{flex-shrink:0;overflow-y:auto;max-height:40dvh;border-top:1px solid var(--border);}
+    .thread-msg{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;}
+    .thread-msg:hover{background:var(--surface2);}
+    .thread-msg:last-child{border-bottom:none;}
+    .thread-msg-header{display:flex;justify-content:space-between;gap:8px;margin-bottom:3px;}
+    .thread-msg-from{font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .thread-msg-date{font-size:10px;font-family:var(--mono);color:var(--text3);flex-shrink:0;}
+    .thread-msg-snippet{font-size:11px;color:var(--text3);overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;}
+    .thread-msg.active-thread{background:var(--surface2);border-left:3px solid var(--accent);}
     .spinner{width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
 
     /* ToDo */
@@ -279,7 +304,7 @@
 <!-- Login -->
 <div id="login-screen">
   <div class="login-logo">MailFocus</div>
-  <div class="login-ver">v1.5.3</div>
+  <div class="login-ver">v1.6</div>
   <div id="saved-accts-wrap" class="saved-accts-wrap" style="display:none">
     <div class="saved-accts-label">保存済みアカウント</div>
     <div id="saved-accts-list"></div>
@@ -299,7 +324,7 @@
 <!-- Main App -->
 <div id="app" style="display:none">
   <header>
-    <div class="logo-wrap"><div class="logo">MailFocus</div><span class="version-badge">v1.5.3</span></div>
+    <div class="logo-wrap"><div class="logo">MailFocus</div><span class="version-badge">v1.6</span></div>
     <div class="header-right">
       <span class="badge badge-unread" id="unread-count">…</span>
       <span class="badge badge-star" id="star-count">…</span>
@@ -318,7 +343,7 @@
           <span class="section-label">タスク</span>
           <button class="tool-btn" onclick="openGroupModal()">＋ グループ</button>
           <button class="tool-btn" id="show-done-btn" onclick="toggleShowDone()">完了済みを表示</button>
-          <button class="tool-btn ml-auto" id="sort-btn" onclick="cycleSortMode()">カスタム ↕</button>
+          <button class="tool-btn ml-auto active" id="sort-btn" onclick="cycleSortMode()">カスタム ↕</button>
         </div>
         <div class="todo-add-row">
           <input type="text" class="todo-add-input" id="todo-input" placeholder="デフォルトグループに追加…" maxlength="200">
@@ -370,6 +395,11 @@
         </div>
       </div>
     </div>
+    <div id="attachments-bar" class="attachments-bar" style="display:none"></div>
+    <div id="thread-toggle" class="thread-toggle" style="display:none" onclick="toggleThread()">
+      <span>💬</span><span id="thread-toggle-label">スレッドを表示</span><span class="thread-count" id="thread-count-badge"></span>
+    </div>
+    <div id="thread-messages" class="thread-messages" style="display:none"></div>
     <div class="sheet-actions">
       <button class="action-btn btn-reply" onclick="toggleReply()">↩ 返信</button>
       <button class="action-btn btn-read" onclick="markRead()">✓ 既読</button>
@@ -586,11 +616,11 @@ function renderMailList(){
     if(m.isUnread)tags.push('<span class="icon-tag tag-unread">&#9679; 未読</span>');
     if(m.isStarred)tags.push('<span class="icon-tag tag-starred">&#9733; スター</span>');
     if(accounts.length>1)tags.push('<span class="icon-tag tag-acct">'+esc(m.acct.split('@')[0])+'</span>');
+    var bgCls='swipe-bg'+(m.isStarred?' starred-bg':'');
     var starIcon=m.isStarred?'&#9734;':'&#9733;';
-    var starCls=m.isStarred?'swipe-action on':'swipe-action';
     var cardCls='mail-card'+(m.isUnread?' unread':'')+(m.isStarred?' starred':'');
     return '<div class="mail-card-wrap" data-idx="'+i+'">'
-      +'<div class="'+starCls+'" id="swipe-act-'+i+'">'+starIcon+'</div>'
+      +'<div class="'+bgCls+'" id="swipe-act-'+i+'"><span class="swipe-star">'+starIcon+'</span></div>'
       +'<div class="mail-card-inner">'
       +'<div class="'+cardCls+'" onclick="openMail('+i+')">'
       +'<div class="mail-header"><div class="mail-from">'+esc(m.from)+'</div><div class="mail-date">'+m.date+'</div></div>'
@@ -605,7 +635,30 @@ function updateBadges(){const u=emails.unread.filter(m=>m.isUnread).length;docum
 function switchMailTab(tab){currentMailTab=tab;['unread','starred'].forEach(t=>document.getElementById(`btab-${t}`).classList.toggle('active',t===tab));renderMailList();}
 
 // ── Mail Detail ──
-function openMail(idx){const list=getFilteredList();currentMail={...list[idx],_idx:idx};document.getElementById('detail-subject').textContent=currentMail.subject;document.getElementById('detail-from').textContent=currentMail.from;document.getElementById('detail-to').textContent=currentMail.to;document.getElementById('detail-date').textContent=currentMail.date;document.getElementById('detail-acct').textContent=currentMail.acct;bodyMode=currentMail.htmlBody?'html':'plain';setBodyMode(bodyMode);updateStarBtn(currentMail.isStarred);document.getElementById('detail-overlay').classList.add('open');document.body.style.overflow='hidden';}
+function openMail(idx){
+  const list=getFilteredList();
+  currentMail={...list[idx],_idx:idx};
+  document.getElementById('detail-subject').textContent=currentMail.subject;
+  document.getElementById('detail-from').textContent=currentMail.from;
+  document.getElementById('detail-to').textContent=currentMail.to;
+  document.getElementById('detail-date').textContent=currentMail.date;
+  document.getElementById('detail-acct').textContent=currentMail.acct;
+  // Reset thread UI
+  document.getElementById('thread-toggle').style.display='none';
+  document.getElementById('thread-messages').style.display='none';
+  document.getElementById('thread-messages').innerHTML='';
+  threadOpen=false;
+  // Attachments
+  renderAttachments(currentMail.attachments||[]);
+  // Body mode
+  bodyMode=currentMail.htmlBody?'html':'plain';
+  setBodyMode(bodyMode);
+  updateStarBtn(currentMail.isStarred);
+  document.getElementById('detail-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  // Load thread in background
+  loadThread(currentMail);
+}
 
 function setBodyMode(mode){bodyMode=mode;document.getElementById('toggle-plain').classList.toggle('active',mode==='plain');document.getElementById('toggle-html').classList.toggle('active',mode==='html');const pe=document.getElementById('detail-body'),he=document.getElementById('detail-body-html');if(mode==='plain'){pe.style.display='';he.style.display='none';pe.innerHTML=linkify(currentMail?.body||currentMail?.snippet||'(本文なし)');}else{pe.style.display='none';he.style.display='';const html=currentMail?.htmlBody||'';if(html){he.style.display='';
       he.style.height='';
@@ -636,6 +689,125 @@ function linkify(text){
     return parts.join('');
   }).join('<br>');
 }
+
+// ── Attachments ──
+function renderAttachments(list){
+  var bar=document.getElementById('attachments-bar');
+  if(!list||!list.length){bar.style.display='none';return;}
+  bar.style.display='flex';
+  var html='';
+  list.forEach(function(a){
+    var icon=getAttachIcon(a.mimeType);
+    var sz=a.size>1048576?(a.size/1048576).toFixed(1)+'MB':a.size>1024?Math.round(a.size/1024)+'KB':a.size+'B';
+    html+='<div class="attach-chip" data-aid="'+a.attachmentId+'" data-name="'+esc(a.name)+'" data-mt="'+esc(a.mimeType)+'" onclick="downloadAttachment(this.dataset.aid,this.dataset.name,this.dataset.mt)">'
+      +'<span class="attach-icon">'+icon+'</span>'
+      +'<span class="attach-name">'+esc(a.name)+'</span>'
+      +'<span class="attach-size">'+sz+'</span></div>';
+  });
+  bar.innerHTML=html;
+}
+
+
+function getAttachIcon(mt){
+  if(!mt)return '📎';
+  if(mt.startsWith('image/'))return '🖼';
+  if(mt.includes('pdf'))return '📄';
+  if(mt.includes('word')||mt.includes('document'))return '📝';
+  if(mt.includes('sheet')||mt.includes('excel'))return '📊';
+  if(mt.includes('zip')||mt.includes('compress'))return '🗜';
+  if(mt.startsWith('audio/'))return '🎵';
+  if(mt.startsWith('video/'))return '🎬';
+  return '📎';
+}
+
+async function downloadAttachment(attachmentId,name,mimeType){
+  if(!currentMail)return;
+  const acct=getAcct(currentMail.acct);if(!acct)return;
+  showToast('⬇ ダウンロード中…');
+  try{
+    const data=await gmailGet(acct,'messages/'+currentMail.id+'/attachments/'+attachmentId);
+    if(!data.data)throw new Error('データなし');
+    const bytes=b64ToBytes(data.data);
+    const blob=new Blob([bytes],{type:mimeType});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=name;a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+    showToast('✓ ダウンロード完了: '+name);
+  }catch(e){showToast('⚠ '+e.message);}
+}
+
+// ── Thread ──
+let currentThread=[];
+let threadOpen=false;
+
+async function loadThread(mail){
+  if(!mail.threadId)return;
+  const acct=getAcct(mail.acct);if(!acct)return;
+  try{
+    const data=await gmailGet(acct,'threads/'+mail.threadId,{format:'metadata',metadataHeaders:'From,Date,Subject'});
+    const msgs=data.messages||[];
+    if(msgs.length<=1)return;
+    currentThread=msgs;
+    const badge=document.getElementById('thread-count-badge');
+    badge.textContent=msgs.length+'件';
+    document.getElementById('thread-toggle').style.display='flex';
+  }catch{}
+}
+
+function toggleThread(){
+  threadOpen=!threadOpen;
+  const el=document.getElementById('thread-messages');
+  const lbl=document.getElementById('thread-toggle-label');
+  if(threadOpen){
+    el.style.display='';
+    lbl.textContent='スレッドを非表示';
+    renderThreadMessages();
+  }else{
+    el.style.display='none';
+    lbl.textContent='スレッドを表示';
+  }
+}
+
+function renderThreadMessages(){
+  var el=document.getElementById('thread-messages');
+  if(!currentThread.length){el.innerHTML='';return;}
+  var html='';
+  currentThread.forEach(function(m,i){
+    var hdr=function(n){return (m.payload&&m.payload.headers||[]).find(function(x){return x.name.toLowerCase()===n.toLowerCase();})||{value:''};};
+    var from=(hdr('From').value||'').replace(/<[^>]+>/,'').trim();
+    var dateFmt='';
+    try{var d=new Date(hdr('Date').value||'');dateFmt=d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch{}
+    var cls='thread-msg'+(m.id===currentMail.id?' active-thread':'');
+    html+='<div class="'+cls+'" data-mid="'+m.id+'" onclick="openThreadMessage(this.dataset.mid)">'
+      +'<div class="thread-msg-header"><span class="thread-msg-from">'+esc(from)+'</span><span class="thread-msg-date">'+dateFmt+'</span></div>'
+      +'<div class="thread-msg-snippet">'+esc(m.snippet||'')+'</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+
+async function openThreadMessage(msgId){
+  const acct=getAcct(currentMail.acct);if(!acct)return;
+  showToast('読み込み中…');
+  try{
+    const msg=await gmailGet(acct,'messages/'+msgId,{format:'full'});
+    const parsed=parseMsg(msg,currentMail.acct);
+    currentMail={...parsed,_idx:currentMail._idx};
+    document.getElementById('detail-subject').textContent=currentMail.subject;
+    document.getElementById('detail-from').textContent=currentMail.from;
+    document.getElementById('detail-to').textContent=currentMail.to;
+    document.getElementById('detail-date').textContent=currentMail.date;
+    renderAttachments(currentMail.attachments||[]);
+    bodyMode=currentMail.htmlBody?'html':'plain';
+    setBodyMode(bodyMode);
+    updateStarBtn(currentMail.isStarred);
+    renderThreadMessages();
+    showToast('');
+  }catch(e){showToast('⚠ '+e.message);}
+}
+
+
 function openInGmail(){if(!currentMail)return;window.open(`https://mail.google.com/mail/u/0/#inbox/${currentMail.threadId||currentMail.id}`,'_blank');}
 function updateStarBtn(isStarred){const btn=document.getElementById('star-action-btn');if(!btn)return;btn.textContent='★ スター';btn.className='action-btn btn-star'+(isStarred?' on':'');}
 function closeDetail(){const panel=document.getElementById('reply-panel'),ta=document.getElementById('reply-textarea');if(panel.classList.contains('open')&&currentMail?.id&&ta.value.trim())saveDraft(currentMail.id,ta.value);panel.classList.remove('open');ta.value='';ta.oninput=null;showDraftInd(false);document.getElementById('detail-overlay').classList.remove('open');document.body.style.overflow='';currentMail=null;}
@@ -660,46 +832,57 @@ function showDraftInd(v){document.getElementById('draft-indicator').classList.to
 
 // ── Swipe to star ──
 function setupSwipeListeners(){
-  document.querySelectorAll('.mail-card-wrap').forEach(wrap=>{
-    const inner=wrap.querySelector('.mail-card-inner');
-    const idx=parseInt(wrap.dataset.idx);
-    let startX=0,startY=0,dragging=false,swiped=false;
-    const onStart=e=>{
-      const t=e.touches?e.touches[0]:e;
-      startX=t.clientX;startY=t.clientY;dragging=true;swiped=false;
-    };
-    const onMove=e=>{
-      if(!dragging)return;
-      const t=e.touches?e.touches[0]:e;
-      const dx=t.clientX-startX,dy=t.clientY-startY;
-      if(Math.abs(dy)>Math.abs(dx)&&!swiped)return; // vertical scroll
-      if(Math.abs(dx)>8)e.preventDefault();
-      const x=Math.max(-80,Math.min(0,dx));
+  document.querySelectorAll('.mail-card-wrap').forEach(function(wrap){
+    var inner=wrap.querySelector('.mail-card-inner');
+    var bg=wrap.querySelector('.swipe-bg');
+    var idx=parseInt(wrap.dataset.idx);
+    var startX=0,startY=0,tracking=false,maybeSwipe=false;
+    var THRESHOLD=Math.min(window.innerWidth*0.38,130); // ~38% of screen width
+
+    wrap.addEventListener('touchstart',function(e){
+      var t=e.touches[0];
+      startX=t.clientX;startY=t.clientY;tracking=true;maybeSwipe=false;
+    },{passive:true});
+
+    wrap.addEventListener('touchmove',function(e){
+      if(!tracking)return;
+      var t=e.touches[0];
+      var dx=t.clientX-startX;
+      var dy=t.clientY-startY;
+      // Only track leftward horizontal swipe
+      if(!maybeSwipe&&Math.abs(dy)>Math.abs(dx))return;
+      if(dx>0)return; // only left
+      maybeSwipe=true;
+      e.preventDefault();
+      var x=Math.max(-THRESHOLD*1.1,dx);
       inner.style.transition='none';
-      inner.style.transform=`translateX(${x}px)`;
-    };
-    const onEnd=e=>{
-      if(!dragging)return;dragging=false;
-      const t=e.changedTouches?e.changedTouches[0]:e;
-      const dx=t.clientX-startX;
-      inner.style.transition='';
-      if(dx<-50){
-        inner.style.transform='translateX(-72px)';
-        inner.classList.add('swiped');
-        // Execute star toggle after short delay for UX
-        setTimeout(()=>{
-          swipeToggleStar(idx);
-          inner.style.transform='';
-          inner.classList.remove('swiped');
-        },400);
-      }else{
-        inner.style.transform='';
-        inner.classList.remove('swiped');
+      inner.style.transform='translateX('+x+'px)';
+      // Show star background, highlight when past threshold
+      if(bg){
+        bg.classList.toggle('ready',Math.abs(dx)>THRESHOLD*0.7);
       }
-    };
-    wrap.addEventListener('touchstart',onStart,{passive:true});
-    wrap.addEventListener('touchmove',onMove,{passive:false});
-    wrap.addEventListener('touchend',onEnd,{passive:true});
+    },{passive:false});
+
+    wrap.addEventListener('touchend',function(e){
+      if(!tracking)return;tracking=false;
+      if(!maybeSwipe){inner.style.transform='';return;}
+      var t=e.changedTouches[0];
+      var dx=t.clientX-startX;
+      inner.style.transition='';
+      if(bg)bg.classList.remove('ready');
+      if(dx<-THRESHOLD*0.7){
+        // Snap to reveal, then spring back after toggle
+        inner.style.transform='translateX(-'+Math.round(THRESHOLD*0.9)+'px)';
+        setTimeout(function(){
+          swipeToggleStar(idx);
+          inner.style.transition='transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94)';
+          inner.style.transform='translateX(0)';
+          setTimeout(function(){inner.style.transition='';},360);
+        },200);
+      }else{
+        inner.style.transform='translateX(0)';
+      }
+    },{passive:true});
   });
 }
 
@@ -744,7 +927,7 @@ function cycleSortMode(){const modes=['custom','added','date','priority'],labels
 function renderTodos(){
   var c=document.getElementById('todo-groups-container');if(!c)return;
   var labels={custom:'カスタム ↕',added:'追加順 ↕',date:'日付順 📅',priority:'優先度順 ⚡'};
-  var sb=document.getElementById('sort-btn');if(sb)sb.textContent=labels[sortMode]||'カスタム ↕';
+  var sb=document.getElementById('sort-btn');if(sb){sb.textContent=labels[sortMode]||'カスタム ↕';sb.classList.add('active');}
   var sdb=document.getElementById('show-done-btn');if(sdb){sdb.textContent=showDone?'完了済みを非表示':'完了済みを表示';sdb.classList.toggle('active',showDone);}
   document.getElementById('nav-todo').classList.toggle('has-dot',todoGroups.flatMap(function(g){return g.items;}).filter(function(i){return !i.done;}).length>0);
   var html='';
@@ -761,7 +944,7 @@ function renderTodos(){
       +'<div class="todo-group-header">'
       +'<span class="todo-group-name">'+esc(g.name)+'</span>'
       +'<span class="todo-group-count">'+pc+'件</span>'
-      +'<button class="todo-group-btn" data-gid="'+g.id+'" onclick="startGroupAdd(this.dataset.gid)">＋</button>'
+      
       +delBtn
       +'</div>'+dz+addH
       +'<div data-items-gid="'+g.id+'">'+itemsHtml+'</div></div>';
@@ -835,7 +1018,20 @@ function moveItem(iid,srcGid,targetIid,targetGid){
   renderTodos();
 }
 
-function addTodo(){const inp=document.getElementById('todo-input'),text=inp.value.trim();if(!text)return;const g=todoGroups[0];if(!g)return;g.items.push({id:genId(),text,done:false,priority:'none',dueDate:'',dueTime:'',createdAt:Date.now()});inp.value='';saveTodosDB();renderTodos();}
+function addTodo(){
+  const inp=document.getElementById('todo-input');
+  if(!inp)return;
+  const text=inp.value.trim();
+  if(!text)return;
+  let g=todoGroups.find(function(x){return x.id==='default';});
+  if(!g)g=todoGroups[0];
+  if(!g)return;
+  g.items.push({id:genId(),text,done:false,priority:'none',dueDate:'',dueTime:'',createdAt:Date.now()});
+  inp.value='';
+  saveTodosDB();
+  renderTodos();
+  showToast('✓ タスクを追加しました');
+}
 function startGroupAdd(gid){addingToGroup=gid;editingId=null;renderTodos();}
 function cancelGroupAdd(){addingToGroup=null;renderTodos();}
 function submitGroupAdd(gid){
@@ -866,7 +1062,13 @@ function openGroupModal(){document.getElementById('group-modal').classList.add('
 function closeGroupModal(){document.getElementById('group-modal').classList.remove('open');document.getElementById('group-name-input').value='';}
 function submitAddGroup(){const name=document.getElementById('group-name-input').value.trim();if(!name){showToast('⚠ グループ名を入力してください');return;}todoGroups.push({id:genId(),name,items:[]});closeGroupModal();saveTodosDB();renderTodos();}
 document.getElementById('group-name-input')?.addEventListener('keydown',e=>{if(e.key==='Enter')submitAddGroup();});
-document.getElementById('todo-input')?.addEventListener('keydown',e=>{if(e.key==='Enter')addTodo();});
+// Use event delegation for todo-input since it's not recreated
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    if(document.activeElement&&document.activeElement.id==='todo-input')addTodo();
+    if(document.activeElement&&document.activeElement.id==='group-name-input')submitAddGroup();
+  }
+});
 
 function deleteGroup(gid){
   const g=todoGroups.find(g=>g.id===gid);if(!g)return;
