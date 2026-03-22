@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MailFocus">
   <link rel="manifest" href="manifest.json">
-  <title>MailFocus v1.5</title>
+  <title>MailFocus v1.5.3</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -115,7 +115,7 @@
     /* Detail Overlay */
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.3s;backdrop-filter:blur(4px);}
     .overlay.open{opacity:1;pointer-events:all;}
-    .detail-sheet{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;border-top:1px solid var(--border2);width:100%;max-width:520px;margin:0 auto;max-height:97dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);}
+    .detail-sheet{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;border-top:1px solid var(--border2);width:100%;max-width:520px;margin:0 auto;max-height:calc(94dvh - env(safe-area-inset-top));display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);}
     .overlay.open .detail-sheet{transform:translateY(0);}
     .sheet-handle{width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:10px auto 0;flex-shrink:0;}
     .sheet-header{padding:13px 16px 11px;border-bottom:1px solid var(--border);flex-shrink:0;}
@@ -127,7 +127,7 @@
     .sheet-body{flex:1;overflow-y:auto;padding:13px 16px;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap;word-break:break-word;}
     .sheet-body::-webkit-scrollbar{width:3px;}
     .sheet-body::-webkit-scrollbar-thumb{background:var(--surface3);}
-    .sheet-body-html{flex:1;overflow:hidden;border:none;background:white;min-height:200px;width:100%;display:block;}
+    .sheet-body-html{flex:1;overflow-y:auto;overflow-x:hidden;border:none;background:white;width:100%;display:block;min-height:0;}
     .body-toggle-bar{display:flex;gap:5px;padding:6px 16px;border-bottom:1px solid var(--border);flex-shrink:0;align-items:center;}
     .body-toggle-btn{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all 0.2s;}
     .body-toggle-btn.active{border-color:var(--accent);color:var(--accent2);background:rgba(124,106,247,0.1);}
@@ -279,7 +279,7 @@
 <!-- Login -->
 <div id="login-screen">
   <div class="login-logo">MailFocus</div>
-  <div class="login-ver">v1.5</div>
+  <div class="login-ver">v1.5.3</div>
   <div id="saved-accts-wrap" class="saved-accts-wrap" style="display:none">
     <div class="saved-accts-label">保存済みアカウント</div>
     <div id="saved-accts-list"></div>
@@ -299,7 +299,7 @@
 <!-- Main App -->
 <div id="app" style="display:none">
   <header>
-    <div class="logo-wrap"><div class="logo">MailFocus</div><span class="version-badge">v1.5</span></div>
+    <div class="logo-wrap"><div class="logo">MailFocus</div><span class="version-badge">v1.5.3</span></div>
     <div class="header-right">
       <span class="badge badge-unread" id="unread-count">…</span>
       <span class="badge badge-star" id="star-count">…</span>
@@ -358,7 +358,7 @@
       <button class="body-toggle-btn" id="toggle-html" onclick="setBodyMode('html')">HTML</button>
     </div>
     <div class="sheet-body" id="detail-body"></div>
-    <iframe class="sheet-body-html" id="detail-body-html" sandbox="allow-same-origin" style="display:none;height:300px;"></iframe>
+    <iframe class="sheet-body-html" id="detail-body-html" sandbox="allow-same-origin allow-scripts" style="display:none;"></iframe>
     <div class="reply-panel" id="reply-panel">
       <div class="reply-inner">
         <div class="reply-to-row">宛先: <span class="reply-to-addr" id="reply-to-addr">—</span><span class="draft-indicator" id="draft-indicator">💾 下書き</span></div>
@@ -607,16 +607,16 @@ function switchMailTab(tab){currentMailTab=tab;['unread','starred'].forEach(t=>d
 // ── Mail Detail ──
 function openMail(idx){const list=getFilteredList();currentMail={...list[idx],_idx:idx};document.getElementById('detail-subject').textContent=currentMail.subject;document.getElementById('detail-from').textContent=currentMail.from;document.getElementById('detail-to').textContent=currentMail.to;document.getElementById('detail-date').textContent=currentMail.date;document.getElementById('detail-acct').textContent=currentMail.acct;bodyMode=currentMail.htmlBody?'html':'plain';setBodyMode(bodyMode);updateStarBtn(currentMail.isStarred);document.getElementById('detail-overlay').classList.add('open');document.body.style.overflow='hidden';}
 
-function setBodyMode(mode){bodyMode=mode;document.getElementById('toggle-plain').classList.toggle('active',mode==='plain');document.getElementById('toggle-html').classList.toggle('active',mode==='html');const pe=document.getElementById('detail-body'),he=document.getElementById('detail-body-html');if(mode==='plain'){pe.style.display='';he.style.display='none';pe.innerHTML=linkify(currentMail?.body||currentMail?.snippet||'(本文なし)');}else{pe.style.display='none';he.style.display='';const html=currentMail?.htmlBody||'';if(html){he.srcdoc=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:sans-serif;font-size:14px;line-height:1.6;padding:12px;color:#111;word-break:break-word;max-width:100%;margin:0;}img{max-width:100%;height:auto;}a{color:#7c6af7;}</style></head><body>${html}</body></html>`;
-      // Let iframe grow with content using ResizeObserver on contentDocument
-      he.style.height='100%';
-      he.onload=()=>{
-        try{
-          const adjust=()=>{const h=he.contentDocument?.body?.scrollHeight;if(h)he.style.height=h+'px';};
-          adjust();
-          new ResizeObserver(adjust).observe(he.contentDocument.body);
-        }catch{}
-      };}else{setBodyMode('plain');showToast('HTMLコンテンツがありません');}}}
+function setBodyMode(mode){bodyMode=mode;document.getElementById('toggle-plain').classList.toggle('active',mode==='plain');document.getElementById('toggle-html').classList.toggle('active',mode==='html');const pe=document.getElementById('detail-body'),he=document.getElementById('detail-body-html');if(mode==='plain'){pe.style.display='';he.style.display='none';pe.innerHTML=linkify(currentMail?.body||currentMail?.snippet||'(本文なし)');}else{pe.style.display='none';he.style.display='';const html=currentMail?.htmlBody||'';if(html){he.style.display='';
+      he.style.height='';
+      he.srcdoc='<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>'
+        +'html,body{margin:0;padding:0;height:100%;}'
+        +'body{font-family:sans-serif;font-size:14px;line-height:1.7;padding:12px 14px;color:#111;word-break:break-word;box-sizing:border-box;}'
+        +'img{max-width:100%;height:auto;}'
+        +'a{color:#7c6af7;}'
+        +'table{max-width:100%;width:100% !important;}'
+        +'*{max-width:100%;}'
+        +'</style></head><body>'+html+'</body></html>';}else{setBodyMode('plain');showToast('HTMLコンテンツがありません');}}}
 function linkify(text){
   // Split text into lines, escape each, then linkify URLs
   return text.split('\n').map(line=>{
