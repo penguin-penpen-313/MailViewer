@@ -296,6 +296,11 @@
     .nav-btn.has-dot .nav-dot{display:block;}
     .view{display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
     .view.active{display:flex;}
+
+    /* Debug panel */
+    #debug-panel{position:fixed;bottom:100px;left:10px;right:10px;background:rgba(0,0,0,0.92);border:1px solid #444;border-radius:8px;padding:10px;font-family:monospace;font-size:10px;color:#0f0;z-index:9999;max-height:200px;overflow-y:auto;display:none;}
+    #debug-panel.show{display:block;}
+    #debug-toggle{position:fixed;bottom:100px;right:10px;width:30px;height:30px;background:#333;border:1px solid #666;border-radius:50%;font-size:10px;color:#fff;cursor:pointer;z-index:10000;display:flex;align-items:center;justify-content:center;}
     .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--surface2);border:1px solid var(--border2);border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;color:var(--text);opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;z-index:400;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   </style>
@@ -453,6 +458,9 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="debug-toggle" onclick="document.getElementById('debug-panel').classList.toggle('show')">🔍</div>
+<div id="debug-panel" id="debug-panel"></div>
+
 
 <script>
 const CLIENT_ID='431372307551-8feqkb7jpbh3824sm1r40meobe0e124j.apps.googleusercontent.com';
@@ -473,12 +481,40 @@ async function dbGet(k){if(!db)return null;return new Promise(res=>{const tx=db.
 async function saveTodosDB(){await dbSet('todoGroups',todoGroups);}
 
 // ── Saved tokens ──
-function loadSavedTokens(){try{return JSON.parse(localStorage.getItem(TOKEN_STORAGE_KEY)||'[]');}catch{return[];}}
-function saveTokens(arr){localStorage.setItem(TOKEN_STORAGE_KEY,JSON.stringify(arr));}
-function isTokenValid(entry){return entry.token&&entry.tokenExpiry&&Date.now()<entry.tokenExpiry-60000;}
+function loadSavedTokens(){
+  try{
+    var raw=localStorage.getItem(TOKEN_STORAGE_KEY);
+    dbg('loadSavedTokens: raw='+(raw?raw.slice(0,100):'NULL/EMPTY'));
+    if(!raw)return[];
+    var arr=JSON.parse(raw);
+    dbg('loadSavedTokens: parsed '+arr.length+' entries');
+    return arr;
+  }catch(e){dbg('loadSavedTokens ERROR: '+e.message);return[];}
+}
+function saveTokens(arr){
+  try{
+    localStorage.setItem(TOKEN_STORAGE_KEY,JSON.stringify(arr));
+    dbg('saveTokens: saved '+arr.length+' entries. Key='+TOKEN_STORAGE_KEY);
+    // Verify it was actually saved
+    var verify=localStorage.getItem(TOKEN_STORAGE_KEY);
+    dbg('verify read back: '+(verify?verify.slice(0,80):'NULL'));
+  }catch(e){dbg('saveTokens ERROR: '+e.message);}
+}
+function isTokenValid(entry){
+  var now=Date.now();
+  var valid=!!(entry.token&&entry.tokenExpiry&&now<entry.tokenExpiry-60000);
+  dbg('isTokenValid('+entry.email+'): token='+(entry.token?'YES':'NO')+' expiry='+entry.tokenExpiry+' now='+now+' diff='+((entry.tokenExpiry||0)-now)+'ms → '+(valid?'VALID':'EXPIRED'));
+  return valid;
+}
 
 // ── Boot ──
 window.onload=async()=>{
+  dbg('=== onload start ===');
+  dbg('localStorage available: '+(typeof localStorage!=='undefined'));
+  dbg('localStorage.length: '+localStorage.length);
+  // List all keys
+  var keys=[];for(var i=0;i<localStorage.length;i++)keys.push(localStorage.key(i));
+  dbg('localStorage keys: '+JSON.stringify(keys));
   await initDB();
   signature=await dbGet('signature')||'';
   showDone=(await dbGet('showDone'))===true;
@@ -522,9 +558,12 @@ window.onload=async()=>{
       scheduleTokenRefresh();
       return;
     }
-    // Re-login failed (user cancelled or revoked) — show login screen
+    // Silent re-auth failed (iOS PWA limitation) — show tap-to-login chips
+    // User taps their account chip → triggers login for just that account
     renderSavedAccounts(saved);
+    showToast('タップしてログインしてください');
   }
+  // No saved accounts — show login screen (loadGapi already called above)
 };
 
 function loadGapi(){return new Promise(res=>{const s=document.createElement('script');s.src='https://apis.google.com/js/api.js';s.onload=()=>gapi.load('client',res);document.head.appendChild(s);});}
@@ -571,15 +610,11 @@ function hideAutoReloginUI(){
   if(ls) ls.style.display='none';
 }
 
-// ── Auto re-login: tries silent first, falls back to consent (with account hint) ──
+// ── Auto re-login: silent only ──
+// On iOS PWA, only silent attempt is made.
+// If silent fails, we fall back to showing saved accounts for one-tap manual login.
 async function autoRelogin(entry){
-  // First try silent (works on desktop/Android Chrome with active Google session)
-  var result=await tryTokenWithPrompt(entry,'');
-  if(result) return result;
-  // On iOS PWA, silent fails — show Google auth with pre-filled account (hint)
-  // This shows a native Google auth popup, user just needs to tap "Continue"
-  result=await tryTokenWithPrompt(entry,'select_account');
-  return result;
+  return await tryTokenWithPrompt(entry,'');
 }
 
 function tryTokenWithPrompt(entry, promptVal){
@@ -1074,6 +1109,14 @@ function switchView(view){
 }
 
 // ── ToDo ──
+
+function dbg(msg){
+  var el=document.getElementById('debug-panel');
+  if(!el)return;
+  var t=new Date().toLocaleTimeString('ja-JP');
+  el.innerHTML='<div>['+t+'] '+msg+'</div>'+el.innerHTML;
+  console.log('[MF]',msg);
+}
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 const PLABELS={none:'',p3:'!',p2:'!!',p1:'!!!'};
 const PORDER={none:0,p3:1,p2:2,p1:3};
