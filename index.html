@@ -526,23 +526,27 @@ window.onload=async()=>{
   renderTodos();
 
   // Auto-login logic
+  // IMPORTANT: Check tokens BEFORE loading any external scripts
   const saved=loadSavedTokens();
-  await loadGapi();
+  dbg('saved.length='+saved.length);
 
   if(saved.length){
     const valid=saved.filter(isTokenValid);
+    dbg('valid.length='+valid.length);
     if(valid.length){
-      // Valid tokens — go straight to app
+      // Valid tokens — restore immediately, NO external script needed
+      dbg('→ VALID tokens found, restoring session');
       accounts=valid.map(e=>({email:e.email,clientId:e.clientId,displayName:e.displayName,token:e.token}));
       showApp();
       loadAllEmails();
       renderTodos();
       scheduleTokenRefresh();
-      return;
+      return;  // ← exits onload here, never loads GAPI
     }
-    // Expired tokens — auto re-login without showing login screen
-    // Show a subtle loading indicator instead
+    // Tokens exist but expired — need to re-authenticate
+    dbg('→ tokens EXPIRED, attempting silent reauth');
     showAutoReloginUI();
+    await loadGapi();
     await loadGis();
     const refreshed=[];
     for(const entry of saved){
@@ -558,12 +562,16 @@ window.onload=async()=>{
       scheduleTokenRefresh();
       return;
     }
-    // Silent re-auth failed (iOS PWA limitation) — show tap-to-login chips
-    // User taps their account chip → triggers login for just that account
+    // Re-auth failed — show saved accounts for manual tap-to-login
+    dbg('→ silent reauth failed, showing login chips');
+    await loadGapi();
     renderSavedAccounts(saved);
-    showToast('タップしてログインしてください');
+    showToast('アカウントをタップしてログインしてください');
+  } else {
+    // No saved accounts at all — load GAPI and show login screen
+    dbg('→ no saved accounts, showing login screen');
+    await loadGapi();
   }
-  // No saved accounts — show login screen (loadGapi already called above)
 };
 
 function loadGapi(){return new Promise(res=>{const s=document.createElement('script');s.src='https://apis.google.com/js/api.js';s.onload=()=>gapi.load('client',res);document.head.appendChild(s);});}
