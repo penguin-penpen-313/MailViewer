@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MailFocus">
   <link rel="manifest" href="manifest.json">
-  <title>MailFocus v1.6</title>
+  <title>MailFocus v1.6.3</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -120,7 +120,8 @@
     .overlay.open{opacity:1;pointer-events:all;}
     .detail-sheet{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;border-top:1px solid var(--border2);width:100%;max-width:520px;margin:0 auto;max-height:calc(94dvh - env(safe-area-inset-top));display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);}
     .overlay.open .detail-sheet{transform:translateY(0);}
-    .sheet-handle{width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:10px auto 0;flex-shrink:0;}
+    .sheet-close-area{padding:6px 0 4px;display:flex;justify-content:center;align-items:center;cursor:pointer;touch-action:pan-y;}
+    .sheet-handle{width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:10px auto 0;flex-shrink:0;cursor:pointer;}
     .sheet-header{padding:13px 16px 11px;border-bottom:1px solid var(--border);flex-shrink:0;}
     .sheet-subject{font-size:15px;font-weight:700;line-height:1.3;margin-bottom:7px;}
     .sheet-meta{display:flex;flex-direction:column;gap:3px;}
@@ -130,7 +131,7 @@
     .sheet-body{flex:1;overflow-y:auto;padding:13px 16px;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap;word-break:break-word;}
     .sheet-body::-webkit-scrollbar{width:3px;}
     .sheet-body::-webkit-scrollbar-thumb{background:var(--surface3);}
-    .sheet-body-html{flex:1;overflow-y:auto;overflow-x:hidden;border:none;background:white;width:100%;display:block;min-height:0;height:100%;}
+    .sheet-body-html{flex:1;overflow-y:auto;overflow-x:hidden;background:white;width:100%;min-height:0;}
     .body-toggle-bar{display:flex;gap:5px;padding:6px 16px;border-bottom:1px solid var(--border);flex-shrink:0;align-items:center;}
     .body-toggle-btn{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all 0.2s;}
     .body-toggle-btn.active{border-color:var(--accent);color:var(--accent2);background:rgba(124,106,247,0.1);}
@@ -304,7 +305,7 @@
 <!-- Login -->
 <div id="login-screen">
   <div class="login-logo">MailFocus</div>
-  <div class="login-ver">v1.6</div>
+  <div class="login-ver">v1.6.3</div>
   <div id="saved-accts-wrap" class="saved-accts-wrap" style="display:none">
     <div class="saved-accts-label">保存済みアカウント</div>
     <div id="saved-accts-list"></div>
@@ -324,7 +325,7 @@
 <!-- Main App -->
 <div id="app" style="display:none">
   <header>
-    <div class="logo-wrap"><div class="logo">MailFocus</div><span class="version-badge">v1.6</span></div>
+    <div class="logo-wrap"><div class="logo">MailFocus</div><span class="version-badge">v1.6.3</span></div>
     <div class="header-right">
       <span class="badge badge-unread" id="unread-count">…</span>
       <span class="badge badge-star" id="star-count">…</span>
@@ -368,7 +369,7 @@
 <!-- Detail Overlay -->
 <div class="overlay" id="detail-overlay" onclick="handleOverlayClick(event)">
   <div class="detail-sheet">
-    <div class="sheet-handle"></div>
+    <div class="sheet-close-area" id="sheet-close-area"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
       <div class="sheet-subject" id="detail-subject">—</div>
       <div class="sheet-meta">
@@ -383,7 +384,7 @@
       <button class="body-toggle-btn" id="toggle-html" onclick="setBodyMode('html')">HTML</button>
     </div>
     <div class="sheet-body" id="detail-body"></div>
-    <iframe class="sheet-body-html" id="detail-body-html" sandbox="allow-same-origin allow-scripts" style="display:none;"></iframe>
+    <div class="sheet-body-html" id="detail-body-html" style="display:none;overflow-y:auto;padding:0;background:white;"></div>
     <div class="reply-panel" id="reply-panel">
       <div class="reply-inner">
         <div class="reply-to-row">宛先: <span class="reply-to-addr" id="reply-to-addr">—</span><span class="draft-indicator" id="draft-indicator">💾 下書き</span></div>
@@ -485,19 +486,40 @@ window.onload=async()=>{
   const sg=await dbGet('todoGroups');
   todoGroups=sg&&sg.length?sg:[{id:'default',name:'タスク',items:[]}];
 
-  // Try auto-login from saved tokens
+  // Render todos immediately (even before login)
+  renderTodos();
+
+  // Auto-login: try valid tokens first, then silent re-auth
   const saved=loadSavedTokens();
   if(saved.length){
     const valid=saved.filter(isTokenValid);
     if(valid.length){
-      // Restore accounts from valid tokens
+      // Tokens still valid — restore immediately
       accounts=valid.map(e=>({email:e.email,clientId:e.clientId,displayName:e.displayName,token:e.token}));
       showApp();
       loadAllEmails();
       renderTodos();
+      // Schedule proactive silent refresh before expiry
+      scheduleTokenRefresh();
       return;
     }
-    // Show saved accounts for quick re-login
+    // Tokens expired — attempt silent re-auth for each saved account
+    await loadGapi();
+    await loadGis();
+    const refreshed=[];
+    for(const entry of saved){
+      const ok=await silentReauth(entry);
+      if(ok) refreshed.push(ok);
+    }
+    if(refreshed.length){
+      accounts=refreshed;
+      showApp();
+      loadAllEmails();
+      renderTodos();
+      scheduleTokenRefresh();
+      return;
+    }
+    // Silent auth failed — show saved accounts for manual login
     renderSavedAccounts(saved);
   }
   await loadGapi();
@@ -526,6 +548,57 @@ function renderSavedAccounts(saved){
 function removeSaved(email){const s=loadSavedTokens().filter(a=>a.email!==email);saveTokens(s);renderSavedAccounts(s);}
 async function quickLogin(email,clientId){document.getElementById('client-id-input').value=clientId||CLIENT_ID;await startLogin();}
 
+// ── Silent re-authentication (no user prompt if already logged in to Google) ──
+async function silentReauth(entry){
+  return new Promise(function(resolve){
+    try{
+      var tc=google.accounts.oauth2.initTokenClient({
+        client_id:entry.clientId||CLIENT_ID,
+        scope:SCOPES,
+        hint:entry.email,   // hint skips account chooser
+        prompt:'',           // empty string = no prompt if session active
+        callback:async function(resp){
+          if(resp.error||!resp.access_token){resolve(null);return;}
+          var token=resp.access_token;
+          var tokenExpiry=Date.now()+(resp.expires_in||3600)*1000;
+          // Update stored token
+          var stored=loadSavedTokens().filter(function(a){return a.email!==entry.email;});
+          stored.push({email:entry.email,clientId:entry.clientId,displayName:entry.displayName,token:token,tokenExpiry:tokenExpiry});
+          saveTokens(stored);
+          resolve({email:entry.email,clientId:entry.clientId,displayName:entry.displayName,token:token});
+        }
+      });
+      tc.requestAccessToken({prompt:'',login_hint:entry.email});
+    }catch(e){resolve(null);}
+  });
+}
+
+// ── Proactively refresh tokens ~5 min before expiry ──
+var _refreshTimer=null;
+function scheduleTokenRefresh(){
+  clearTimeout(_refreshTimer);
+  var stored=loadSavedTokens();
+  if(!stored.length)return;
+  // Find the soonest expiry
+  var soonest=Math.min.apply(null,stored.map(function(e){return e.tokenExpiry||0;}));
+  var msUntilRefresh=soonest-Date.now()-5*60*1000; // 5 min before expiry
+  if(msUntilRefresh<0)msUntilRefresh=0;
+  if(msUntilRefresh>3600000)msUntilRefresh=3600000; // max 1hr
+  _refreshTimer=setTimeout(async function(){
+    var current=loadSavedTokens();
+    var needsRefresh=current.filter(function(e){return Date.now()>e.tokenExpiry-5*60*1000;});
+    for(var i=0;i<needsRefresh.length;i++){
+      var entry=needsRefresh[i];
+      await loadGis();
+      var refreshed=await silentReauth(entry);
+      if(refreshed){
+        accounts=accounts.map(function(a){return a.email===refreshed.email?{...a,token:refreshed.token}:a;});
+      }
+    }
+    scheduleTokenRefresh(); // reschedule
+  },msUntilRefresh);
+}
+
 async function startLogin(){
   const clientId=document.getElementById('client-id-input').value.trim()||CLIENT_ID;
   await loadGis();
@@ -550,6 +623,7 @@ async function startLogin(){
       saved.push({email,clientId,displayName,token,tokenExpiry});
       saveTokens(saved);
       showApp();loadAllEmails();renderTodos();
+      scheduleTokenRefresh();
     }
   });
   tc.requestAccessToken({prompt:'consent'});
@@ -697,28 +771,44 @@ function openMail(idx){
   loadThread(currentMail);
 }
 
-function setBodyMode(mode){bodyMode=mode;document.getElementById('toggle-plain').classList.toggle('active',mode==='plain');document.getElementById('toggle-html').classList.toggle('active',mode==='html');const pe=document.getElementById('detail-body'),he=document.getElementById('detail-body-html');if(mode==='plain'){pe.style.display='';he.style.display='none';pe.innerHTML=linkify(currentMail?.body||currentMail?.snippet||'(本文なし)');}else{pe.style.display='none';he.style.display='';const html=currentMail?.htmlBody||'';if(html){he.style.display='';
-      he.style.height='';
-      he.srcdoc='<!DOCTYPE html><html><head>'
-        +'<meta charset="UTF-8">'
-        +'<meta name="viewport" content="width=device-width,initial-scale=1">'
-        +'<style>'
-        +'*{box-sizing:border-box;max-width:100%;}'
-        +'html,body{margin:0;padding:0;width:100%;}'
-        +'body{font-family:sans-serif;font-size:14px;line-height:1.7;padding:14px;color:#111;word-break:break-word;overflow-x:hidden;}'
-        +'img{max-width:100%;height:auto;display:block;}'
-        +'a{color:#7c6af7;word-break:break-all;}'
-        +'table{max-width:100%;width:100% !important;border-collapse:collapse;}'
-        +'td,th{max-width:100%;}'
-        +'pre{white-space:pre-wrap;word-break:break-all;}'
-        +'</style></head><body>'+html+'</body></html>';
-      // Resize iframe to fit content after load
-      he.onload=function(){
-        try{
-          var bh=he.contentDocument&&he.contentDocument.body&&he.contentDocument.body.scrollHeight;
-          if(bh&&bh>100) he.style.height=bh+'px';
-        }catch(e){}
-      };}else{setBodyMode('plain');showToast('HTMLコンテンツがありません');}}}
+function setBodyMode(mode){
+  bodyMode=mode;
+  document.getElementById('toggle-plain').classList.toggle('active',mode==='plain');
+  document.getElementById('toggle-html').classList.toggle('active',mode==='html');
+  var pe=document.getElementById('detail-body');
+  var he=document.getElementById('detail-body-html');
+  if(mode==='plain'){
+    pe.style.display='';
+    he.style.display='none';
+    pe.innerHTML=linkify(currentMail&&(currentMail.body||currentMail.snippet)||'(本文なし)');
+  }else{
+    pe.style.display='none';
+    he.style.display='';
+    var html=currentMail&&currentMail.htmlBody||'';
+    if(html){
+      // Sanitize and render HTML inline using DOMParser (avoids iframe sizing issues)
+      try{
+        var parser=new DOMParser();
+        var doc=parser.parseFromString(html,'text/html');
+        // Remove script tags for safety
+        doc.querySelectorAll('script,style[type="text/javascript"]').forEach(function(el){el.remove();});
+        // Fix images and links
+        doc.querySelectorAll('img').forEach(function(img){img.style.maxWidth='100%';img.style.height='auto';});
+        doc.querySelectorAll('a').forEach(function(a){a.target='_blank';a.rel='noopener noreferrer';});
+        doc.querySelectorAll('table').forEach(function(t){t.style.maxWidth='100%';t.style.width='100%';t.style.tableLayout='fixed';});
+        // Extract body content
+        var bodyContent=doc.body?doc.body.innerHTML:html;
+        he.innerHTML='<div style="font-family:sans-serif;font-size:14px;line-height:1.7;padding:14px;color:#111;word-break:break-word;overflow-x:hidden;box-sizing:border-box;">'+bodyContent+'</div>';
+      }catch(err){
+        he.innerHTML='<div style="padding:14px;font-size:13px;color:#555;">'+html+'</div>';
+      }
+    }else{
+      setBodyMode('plain');
+      showToast('HTMLコンテンツがありません');
+    }
+  }
+}
+
 function linkify(text){
   // Split text into lines, escape each, then linkify URLs
   return text.split('\n').map(line=>{
@@ -960,7 +1050,15 @@ async function swipeToggleStar(idx){
   }catch(e){showToast('⚠ '+e.message);}
 }
 
-function switchView(view){['mail','todo'].forEach(v=>{document.getElementById(`view-${v}`).classList.toggle('active',v===view);document.getElementById(`nav-${v}`).classList.toggle('active',v===view);});document.getElementById('bottom-mail-tabs').classList.toggle('visible',view==='mail');if(view==='mail')renderAcctFilter();}
+function switchView(view){
+  ['mail','todo'].forEach(function(v){
+    document.getElementById('view-'+v).classList.toggle('active',v===view);
+    document.getElementById('nav-'+v).classList.toggle('active',v===view);
+  });
+  document.getElementById('bottom-mail-tabs').classList.toggle('visible',view==='mail');
+  if(view==='mail') renderAcctFilter();
+  if(view==='todo') renderTodos();
+}
 
 // ── ToDo ──
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
@@ -1152,6 +1250,24 @@ function closeGuide(){document.getElementById('guide-modal').classList.remove('o
 let toastTimer;
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800);}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Swipe down to close detail sheet ──
+(function(){
+  var area=document.getElementById('sheet-close-area');
+  if(!area)return;
+  var startY=0,startX=0;
+  area.addEventListener('touchstart',function(e){
+    startY=e.touches[0].clientY;
+    startX=e.touches[0].clientX;
+  },{passive:true});
+  area.addEventListener('touchend',function(e){
+    var dy=e.changedTouches[0].clientY-startY;
+    var dx=Math.abs(e.changedTouches[0].clientX-startX);
+    if(dy>40&&dx<60) closeDetail();
+  },{passive:true});
+  // Also close on tap of handle area
+  area.addEventListener('click',function(){closeDetail();});
+})();
 
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 switchView('mail');
