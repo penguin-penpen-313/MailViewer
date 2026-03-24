@@ -1,4 +1,4 @@
-const CACHE = 'mailfocus-v1.6.4';
+const CACHE = 'mailfocus-v1.6.5';
 const SHELL = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -10,11 +10,16 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  // Delete ALL old caches immediately
   e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
+    .then(() => {
+      // Tell all open pages to reload so they get the new SW immediately
+      return self.clients.matchAll({type:'window'}).then(clients => {
+        clients.forEach(client => client.postMessage({type:'SW_UPDATED'}));
+      });
+    })
   );
 });
 
