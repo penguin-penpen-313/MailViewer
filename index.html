@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MailFocus">
   <link rel="manifest" href="manifest.json">
-  <title>MailFocus v1.6.3</title>
+  <title>MailFocus v1.6.4</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -305,7 +305,7 @@
 <!-- Login -->
 <div id="login-screen">
   <div class="login-logo">MailFocus</div>
-  <div class="login-ver">v1.6.3</div>
+  <div class="login-ver">v1.6.4</div>
   <div id="saved-accts-wrap" class="saved-accts-wrap" style="display:none">
     <div class="saved-accts-label">保存済みアカウント</div>
     <div id="saved-accts-list"></div>
@@ -325,7 +325,7 @@
 <!-- Main App -->
 <div id="app" style="display:none">
   <header>
-    <div class="logo-wrap"><div class="logo">MailFocus</div><span class="version-badge">v1.6.3</span></div>
+    <div class="logo-wrap"><div class="logo">MailFocus</div><span class="version-badge">v1.6.4</span></div>
     <div class="header-right">
       <span class="badge badge-unread" id="unread-count">…</span>
       <span class="badge badge-star" id="star-count">…</span>
@@ -489,28 +489,31 @@ window.onload=async()=>{
   // Render todos immediately (even before login)
   renderTodos();
 
-  // Auto-login: try valid tokens first, then silent re-auth
+  // Auto-login logic
   const saved=loadSavedTokens();
+  await loadGapi();
+
   if(saved.length){
     const valid=saved.filter(isTokenValid);
     if(valid.length){
-      // Tokens still valid — restore immediately
+      // Valid tokens — go straight to app
       accounts=valid.map(e=>({email:e.email,clientId:e.clientId,displayName:e.displayName,token:e.token}));
       showApp();
       loadAllEmails();
       renderTodos();
-      // Schedule proactive silent refresh before expiry
       scheduleTokenRefresh();
       return;
     }
-    // Tokens expired — attempt silent re-auth for each saved account
-    await loadGapi();
+    // Expired tokens — auto re-login without showing login screen
+    // Show a subtle loading indicator instead
+    showAutoReloginUI();
     await loadGis();
     const refreshed=[];
     for(const entry of saved){
-      const ok=await silentReauth(entry);
+      const ok=await autoRelogin(entry);
       if(ok) refreshed.push(ok);
     }
+    hideAutoReloginUI();
     if(refreshed.length){
       accounts=refreshed;
       showApp();
@@ -519,10 +522,9 @@ window.onload=async()=>{
       scheduleTokenRefresh();
       return;
     }
-    // Silent auth failed — show saved accounts for manual login
+    // Re-login failed (user cancelled or revoked) — show login screen
     renderSavedAccounts(saved);
   }
-  await loadGapi();
 };
 
 function loadGapi(){return new Promise(res=>{const s=document.createElement('script');s.src='https://apis.google.com/js/api.js';s.onload=()=>gapi.load('client',res);document.head.appendChild(s);});}
@@ -548,56 +550,67 @@ function renderSavedAccounts(saved){
 function removeSaved(email){const s=loadSavedTokens().filter(a=>a.email!==email);saveTokens(s);renderSavedAccounts(s);}
 async function quickLogin(email,clientId){document.getElementById('client-id-input').value=clientId||CLIENT_ID;await startLogin();}
 
-// ── Silent re-authentication (no user prompt if already logged in to Google) ──
-async function silentReauth(entry){
+// ── Auto re-login UI ──
+function showAutoReloginUI(){
+  // Show a subtle spinner over login screen instead of blank screen
+  var el=document.getElementById('login-screen');
+  if(el){
+    el.style.display='';
+    var spin=document.createElement('div');
+    spin.id='auto-relogin-spinner';
+    spin.style.cssText='position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:600;gap:16px;';
+    spin.innerHTML='<div style="width:36px;height:36px;border:3px solid rgba(167,139,250,0.2);border-top-color:var(--accent2);border-radius:50%;animation:spin 0.8s linear infinite;"></div>'
+      +'<div style="font-family:var(--mono);font-size:12px;color:var(--text3);">ログイン中…</div>';
+    document.body.appendChild(spin);
+  }
+}
+function hideAutoReloginUI(){
+  var el=document.getElementById('auto-relogin-spinner');
+  if(el) el.remove();
+  var ls=document.getElementById('login-screen');
+  if(ls) ls.style.display='none';
+}
+
+// ── Auto re-login: tries silent first, falls back to consent (with account hint) ──
+async function autoRelogin(entry){
+  // First try silent (works on desktop/Android Chrome with active Google session)
+  var result=await tryTokenWithPrompt(entry,'');
+  if(result) return result;
+  // On iOS PWA, silent fails — show Google auth with pre-filled account (hint)
+  // This shows a native Google auth popup, user just needs to tap "Continue"
+  result=await tryTokenWithPrompt(entry,'select_account');
+  return result;
+}
+
+function tryTokenWithPrompt(entry, promptVal){
   return new Promise(function(resolve){
+    var done=false;
+    // Timeout after 8s for silent, 60s for consent
+    var timeout=setTimeout(function(){if(!done){done=true;resolve(null);}}, promptVal===''?8000:60000);
     try{
       var tc=google.accounts.oauth2.initTokenClient({
         client_id:entry.clientId||CLIENT_ID,
         scope:SCOPES,
-        hint:entry.email,   // hint skips account chooser
-        prompt:'',           // empty string = no prompt if session active
+        login_hint:entry.email,
+        prompt:promptVal,
         callback:async function(resp){
+          clearTimeout(timeout);
+          if(done)return;
+          done=true;
           if(resp.error||!resp.access_token){resolve(null);return;}
           var token=resp.access_token;
           var tokenExpiry=Date.now()+(resp.expires_in||3600)*1000;
-          // Update stored token
           var stored=loadSavedTokens().filter(function(a){return a.email!==entry.email;});
           stored.push({email:entry.email,clientId:entry.clientId,displayName:entry.displayName,token:token,tokenExpiry:tokenExpiry});
           saveTokens(stored);
           resolve({email:entry.email,clientId:entry.clientId,displayName:entry.displayName,token:token});
         }
       });
-      tc.requestAccessToken({prompt:'',login_hint:entry.email});
-    }catch(e){resolve(null);}
+      tc.requestAccessToken({prompt:promptVal,login_hint:entry.email});
+    }catch(e){clearTimeout(timeout);if(!done){done=true;resolve(null);}}
   });
 }
 
-// ── Proactively refresh tokens ~5 min before expiry ──
-var _refreshTimer=null;
-function scheduleTokenRefresh(){
-  clearTimeout(_refreshTimer);
-  var stored=loadSavedTokens();
-  if(!stored.length)return;
-  // Find the soonest expiry
-  var soonest=Math.min.apply(null,stored.map(function(e){return e.tokenExpiry||0;}));
-  var msUntilRefresh=soonest-Date.now()-5*60*1000; // 5 min before expiry
-  if(msUntilRefresh<0)msUntilRefresh=0;
-  if(msUntilRefresh>3600000)msUntilRefresh=3600000; // max 1hr
-  _refreshTimer=setTimeout(async function(){
-    var current=loadSavedTokens();
-    var needsRefresh=current.filter(function(e){return Date.now()>e.tokenExpiry-5*60*1000;});
-    for(var i=0;i<needsRefresh.length;i++){
-      var entry=needsRefresh[i];
-      await loadGis();
-      var refreshed=await silentReauth(entry);
-      if(refreshed){
-        accounts=accounts.map(function(a){return a.email===refreshed.email?{...a,token:refreshed.token}:a;});
-      }
-    }
-    scheduleTokenRefresh(); // reschedule
-  },msUntilRefresh);
-}
 
 async function startLogin(){
   const clientId=document.getElementById('client-id-input').value.trim()||CLIENT_ID;
