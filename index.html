@@ -1,996 +1,1383 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#000000">
-<link rel="manifest" href="./manifest.json">
-<link rel="apple-touch-icon" href="./icon-192.png">
-<title>HUD v0.1.2</title>
-<style>
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MailFocus">
+  <link rel="manifest" href="manifest.json">
+  <title>MailFocus v1.6.5</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--surface3:#22223a;
+      --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
+      --accent:#7c6af7;--accent2:#a78bfa;--accent-glow:rgba(124,106,247,0.3);
+      --star:#f59e0b;--unread:#34d399;--danger:#f87171;
+      --p1:#f87171;--p2:#fb923c;--p3:#fbbf24;
+      --text:#e8e8f0;--text2:#9090a8;--text3:#5a5a78;
+      --font:'Syne',sans-serif;--mono:'DM Mono',monospace;--r:12px;--rl:20px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden;}
+    button{font-family:var(--font);}
+    input,textarea,select{font-size:16px !important;}
 
-:root {
-  --col: #00ffff;
-  --col-bd: rgba(0,255,255,0.20);
-  --dim: 0;
-}
+    #app{display:flex;flex-direction:column;height:100dvh;max-width:520px;margin:0 auto;padding-top:env(safe-area-inset-top);}
 
-html, body {
-  width:100%; height:100%;
-  background:#000;
-  overflow:hidden;
-  font-family:'Courier New', Courier, monospace;
-  -webkit-tap-highlight-color:transparent;
-  user-select:none; -webkit-user-select:none;
-  touch-action:none;
-}
+    /* Login */
+    #login-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;padding:calc(32px + env(safe-area-inset-top)) 20px calc(32px + env(safe-area-inset-bottom));background-image:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(124,106,247,0.12) 0%,transparent 70%);overflow-y:auto;}
+    .login-logo{font-size:30px;font-weight:800;background:linear-gradient(135deg,var(--accent2),#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px;}
+    .login-ver{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:28px;}
+    .saved-accts-wrap{width:100%;max-width:360px;margin-bottom:14px;}
+    .saved-accts-label{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;}
+    .account-chip{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:9px 13px;margin-bottom:5px;cursor:pointer;transition:all 0.2s;}
+    .account-chip:hover{border-color:var(--accent);}
+    .account-avatar{width:26px;height:26px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;flex-shrink:0;}
+    .account-remove{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:3px;transition:color 0.2s;}
+    .account-remove:hover{color:var(--danger);}
+    .login-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--rl);padding:20px 18px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:13px;}
+    .login-title{font-size:16px;font-weight:700;}
+    .login-desc{font-size:12px;color:var(--text2);line-height:1.6;}
+    .google-btn{display:flex;align-items:center;justify-content:center;gap:9px;background:white;border:none;border-radius:var(--r);padding:12px;font-size:13px;font-weight:700;color:#1f1f1f;cursor:pointer;transition:all 0.2s;width:100%;}
+    .google-btn:hover{background:#f0f0f0;transform:translateY(-1px);}
+    .login-hint{font-size:11px;color:var(--text3);font-family:var(--mono);text-align:center;}
+    .login-hint a{color:var(--accent2);cursor:pointer;}
 
-/* ── Brightness overlay ── */
-#dim-overlay {
-  position:fixed; inset:0;
-  background:#000;
-  opacity:var(--dim);
-  pointer-events:none;
-  z-index:800;
-}
+    /* Header */
+    header{padding:12px 14px 0;display:flex;align-items:center;gap:6px;flex-shrink:0;}
+    .logo-wrap{display:flex;align-items:baseline;gap:5px;}
+    .logo{font-size:19px;font-weight:800;background:linear-gradient(135deg,var(--accent2),#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .version-badge{font-family:var(--mono);font-size:9px;color:var(--text3);background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;}
+    .header-right{display:flex;gap:5px;margin-left:auto;align-items:center;}
+    .badge{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap;}
+    .badge-unread{background:rgba(52,211,153,0.15);color:var(--unread);border:1px solid rgba(52,211,153,0.25);}
+    .badge-star{background:rgba(245,158,11,0.15);color:var(--star);border:1px solid rgba(245,158,11,0.25);}
+    .icon-btn{background:transparent;border:1px solid var(--border2);border-radius:7px;color:var(--text3);width:27px;height:27px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;transition:all 0.2s;flex-shrink:0;}
+    .icon-btn:hover{background:var(--surface2);color:var(--text);}
+    .icon-btn.spinning svg{animation:spin 1s linear infinite;}
 
-/* ── HUD root ──
-   Portrait : fills screen as-is
-   Landscape: box (100vh × 100vw) rotated –90°
-              so it looks like phone held sideways
-   
-   Centering on portrait phone (W × H, W < H):
-     element size: width=H, height=W
-     we want center = (W/2, H/2)
-     → left = 50vw − 50vh  (negative)
-     → top  = 50vh − 50vw  (positive)
-*/
-#hud-root {
-  position:fixed; inset:0;
-}
-body.ls #hud-root {
-  inset: unset;
-  width:  100vh;
-  height: 100vw;
-  top:    calc(50vh - 50vw);
-  left:   calc(50vw - 50vh);
-  transform: rotate(-90deg);
-  transform-origin: 50% 50%;
-}
+    /* Accounts bar */
+    #accounts-bar{display:flex;align-items:center;gap:5px;padding:6px 14px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-shrink:0;}
+    #accounts-bar::-webkit-scrollbar{display:none;}
+    .acct-pill{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:3px 10px 3px 5px;flex-shrink:0;}
+    .acct-pill-avatar{width:18px;height:18px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;flex-shrink:0;}
+    .acct-pill-name{font-size:10px;font-family:var(--mono);color:var(--text2);white-space:nowrap;}
 
-/* ── Mirror / Keystone wrappers ── */
-#hud-mirror, #hud-ks {
-  width:100%; height:100%;
-  transform-origin: center center;
-}
+    /* Main */
+    .main-content{flex:1;min-height:0;display:flex;flex-direction:column;}
+    .scroll-area{flex:1;overflow-y:auto;padding:0 14px;-webkit-overflow-scrolling:touch;min-height:0;}
+    .scroll-area::-webkit-scrollbar{width:3px;}
+    .scroll-area::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
 
-/* ── Main grid ── */
-#hud {
-  width:100%; height:100%;
-  display:grid;
-  position:relative;
-}
+    /* Mail */
+    #mail-tabs-bar{flex-shrink:0;}
+    .account-filter{display:flex;gap:5px;padding:0 14px 6px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .account-filter::-webkit-scrollbar{display:none;}
+    .acct-chip{padding:3px 9px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-size:10px;font-family:var(--mono);cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;}
+    .acct-chip.active{background:var(--surface2);border-color:var(--accent2);color:var(--accent2);}
+    .mail-list{display:flex;flex-direction:column;gap:6px;padding:8px 0 12px;}
+    .mail-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
+    .mail-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;opacity:0;transition:opacity 0.2s;}
+    .mail-card.unread::before{opacity:1;background:var(--unread);}
+    .mail-card.starred::before{opacity:1;background:var(--star);}
+    .mail-card:active{transform:scale(0.98);}
+    .mail-header{display:flex;justify-content:space-between;gap:8px;margin-bottom:3px;align-items:center;}
+    .mail-from{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .mail-card:not(.unread) .mail-from{font-weight:400;color:var(--text2);}
+    .mail-date{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0;}
+    .mail-subject{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+    .mail-card.unread .mail-subject{color:var(--text);font-weight:600;}
+    .mail-snippet{font-size:11px;color:var(--text3);overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;}
+    .mail-footer{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap;}
+    .icon-tag{font-size:9px;font-family:var(--mono);padding:2px 5px;border-radius:20px;}
+    .tag-unread{background:rgba(52,211,153,0.1);color:var(--unread);}
+    .tag-starred{background:rgba(245,158,11,0.1);color:var(--star);}
+    .tag-acct{background:var(--surface2);color:var(--text3);border:1px solid var(--border2);}
+    /* Swipe actions */
+    .mail-card-wrap{position:relative;overflow:hidden;border-radius:var(--r);margin-bottom:6px;}
+    .swipe-bg{position:absolute;right:0;top:0;bottom:0;width:100%;display:flex;align-items:center;justify-content:flex-end;padding-right:18px;background:rgba(245,158,11,0.18);border-radius:var(--r);pointer-events:none;transition:background 0.15s;}
+    .swipe-bg.ready{background:rgba(245,158,11,0.55);}
+    .swipe-bg .swipe-star{font-size:22px;opacity:0.5;transition:opacity 0.15s,transform 0.15s;transform:scale(0.8);}
+    .swipe-bg.ready .swipe-star{opacity:1;transform:scale(1.15);}
+    .swipe-bg.starred-bg{background:rgba(245,158,11,0.08);}
+    .mail-card-inner{transform:translateX(0);transition:transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94);background:var(--surface);border-radius:var(--r);will-change:transform;}
+    .mail-card-inner.swiped{transform:translateX(-80px);}
+    .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;color:var(--text3);text-align:center;flex:1;}
+    .empty-icon{font-size:38px;margin-bottom:9px;}
+    .empty-title{font-size:14px;font-weight:700;color:var(--text2);margin-bottom:4px;}
+    .empty-sub{font-size:12px;line-height:1.6;}
+    .skeleton{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;margin-bottom:6px;}
+    .skel-line{height:11px;background:linear-gradient(90deg,var(--surface2) 0%,var(--surface3) 50%,var(--surface2) 100%);background-size:200% 100%;border-radius:5px;animation:shimmer 1.5s infinite;margin-bottom:7px;}
+    .skel-line:last-child{margin-bottom:0;width:55%;}
+    @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+    @keyframes spin{to{transform:rotate(360deg);}}
 
-/* Portrait */
-body.pt #hud {
-  grid-template:
-    "spd" 2fr
-    "clk" 1fr
-    "cmp" minmax(72px, 1fr)
-    / 1fr;
-}
-/* Landscape (inside the rotated box) */
-body.ls #hud {
-  grid-template:
-    "spd clk" 1fr
-    "cmp cmp" minmax(72px, 23%)
-    / 2fr 1fr;
-}
+    /* Detail Overlay */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.3s;backdrop-filter:blur(4px);}
+    .overlay.open{opacity:1;pointer-events:all;}
+    .detail-sheet{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;border-top:1px solid var(--border2);width:100%;max-width:520px;margin:0 auto;max-height:calc(94dvh - env(safe-area-inset-top));display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);}
+    .overlay.open .detail-sheet{transform:translateY(0);}
+    .sheet-close-area{padding:6px 0 4px;display:flex;justify-content:center;align-items:center;cursor:pointer;touch-action:pan-y;}
+    .sheet-handle{width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:10px auto 0;flex-shrink:0;cursor:pointer;}
+    .sheet-header{padding:13px 16px 11px;border-bottom:1px solid var(--border);flex-shrink:0;}
+    .sheet-subject{font-size:15px;font-weight:700;line-height:1.3;margin-bottom:7px;}
+    .sheet-meta{display:flex;flex-direction:column;gap:3px;}
+    .sheet-meta-row{display:flex;gap:7px;font-size:11px;font-family:var(--mono);}
+    .meta-label{color:var(--text3);min-width:28px;}
+    .meta-value{color:var(--text2);overflow:hidden;text-overflow:ellipsis;}
+    .sheet-body{flex:1;overflow-y:auto;padding:13px 16px;font-size:13px;line-height:1.7;color:var(--text2);white-space:pre-wrap;word-break:break-word;}
+    .sheet-body::-webkit-scrollbar{width:3px;}
+    .sheet-body::-webkit-scrollbar-thumb{background:var(--surface3);}
+    .sheet-body-html{flex:1;overflow-y:auto;overflow-x:hidden;background:white;width:100%;min-height:0;}
+    .body-toggle-bar{display:flex;gap:5px;padding:6px 16px;border-bottom:1px solid var(--border);flex-shrink:0;align-items:center;}
+    .body-toggle-btn{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all 0.2s;}
+    .body-toggle-btn.active{border-color:var(--accent);color:var(--accent2);background:rgba(124,106,247,0.1);}
+    .open-gmail-btn{margin-left:auto;font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all 0.2s;}
+    .open-gmail-btn:hover{background:var(--surface2);color:var(--text2);}
+    .sheet-actions{padding:9px 13px calc(9px + env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;gap:5px;flex-shrink:0;}
+    .action-btn{flex:1;padding:10px 4px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;}
+    .action-btn:active{transform:scale(0.96);}
+    .btn-reply{background:rgba(124,106,247,0.15);border-color:var(--accent);color:var(--accent2);}
+    .btn-read{background:rgba(52,211,153,0.12);border-color:rgba(52,211,153,0.3);color:var(--unread);}
+    .btn-star{background:transparent;border-color:var(--border2);color:var(--text3);}
+    .btn-star.on{background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.5);color:var(--star);}
+    .reply-panel{border-top:1px solid var(--border2);background:var(--surface2);flex-shrink:0;max-height:0;overflow:hidden;transition:max-height 0.35s cubic-bezier(0.32,0.72,0,1);}
+    .reply-panel.open{max-height:460px;}
+    .reply-inner{padding:11px 13px 13px;display:flex;flex-direction:column;gap:8px;}
+    .reply-to-row{display:flex;align-items:center;gap:7px;font-size:11px;font-family:var(--mono);color:var(--text3);}
+    .reply-to-addr{color:var(--accent2);background:rgba(124,106,247,0.1);border-radius:5px;padding:2px 6px;font-size:10px;}
+    .draft-indicator{font-family:var(--mono);font-size:10px;color:var(--star);display:none;align-items:center;gap:3px;margin-left:auto;}
+    .draft-indicator.visible{display:flex;}
+    .reply-quote{background:var(--bg);border-left:3px solid var(--surface3);border-radius:0 6px 6px 0;padding:7px 10px;font-size:11px;color:var(--text3);line-height:1.6;max-height:60px;overflow:hidden;font-family:var(--mono);white-space:pre-wrap;word-break:break-word;}
+    .quote-label{font-size:9px;color:var(--text3);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
+    .reply-textarea{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;color:var(--text);line-height:1.6;resize:none;outline:none;height:95px;transition:border-color 0.2s;width:100%;}
+    .reply-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+    .reply-textarea::placeholder{color:var(--text3);}
+    .reply-footer{display:flex;justify-content:flex-end;gap:7px;}
+    .reply-cancel-btn{background:transparent;border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-weight:600;padding:8px 14px;cursor:pointer;}
+    .reply-send-btn{background:var(--accent);border:none;border-radius:var(--r);color:white;font-weight:700;padding:8px 18px;cursor:pointer;display:flex;align-items:center;gap:5px;}
+    .reply-send-btn:disabled{opacity:0.5;cursor:not-allowed;}
 
-/* Scan-line texture */
-#hud::after {
-  content:'';
-  position:absolute; inset:0;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0, transparent 3px,
-    rgba(0,0,0,0.05) 3px, rgba(0,0,0,0.05) 4px
-  );
-  pointer-events:none; z-index:2;
-}
+    /* Attachments */
+    .attachments-bar{display:flex;gap:6px;padding:8px 16px;border-top:1px solid var(--border);flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .attachments-bar::-webkit-scrollbar{display:none;}
+    .attach-chip{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;}
+    .attach-chip:hover{border-color:var(--accent);background:var(--surface3);}
+    .attach-icon{font-size:14px;}
+    .attach-name{font-size:11px;font-family:var(--mono);color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis;}
+    .attach-size{font-size:10px;font-family:var(--mono);color:var(--text3);}
+    /* Thread */
+    .thread-toggle{display:flex;align-items:center;gap:6px;padding:7px 16px;border-top:1px solid var(--border);cursor:pointer;font-size:11px;font-family:var(--mono);color:var(--text3);background:var(--surface2);flex-shrink:0;transition:background 0.2s;}
+    .thread-toggle:hover{background:var(--surface3);}
+    .thread-count{background:var(--surface3);border-radius:10px;padding:1px 7px;font-size:10px;color:var(--text2);}
+    .thread-messages{flex-shrink:0;overflow-y:auto;max-height:40dvh;border-top:1px solid var(--border);}
+    .thread-msg{padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;}
+    .thread-msg:hover{background:var(--surface2);}
+    .thread-msg:last-child{border-bottom:none;}
+    .thread-msg-header{display:flex;justify-content:space-between;gap:8px;margin-bottom:3px;}
+    .thread-msg-from{font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .thread-msg-date{font-size:10px;font-family:var(--mono);color:var(--text3);flex-shrink:0;}
+    .thread-msg-snippet{font-size:11px;color:var(--text3);overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;}
+    .thread-msg.active-thread{background:var(--surface2);border-left:3px solid var(--accent);}
+    .spinner{width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:none;}
 
-/* ── Sections ── */
-#s-spd, #s-clk, #s-cmp {
-  position:relative; overflow:hidden;
-  display:flex; align-items:center; justify-content:center;
-}
-#s-spd { grid-area:spd }
-#s-clk {
-  grid-area:clk;
-  border-left:1px solid var(--col-bd);
-}
-body.pt #s-clk {
-  border-left:none;
-  border-top:1px solid var(--col-bd);
-  border-bottom:1px solid var(--col-bd);
-}
-#s-cmp {
-  grid-area:cmp;
-  border-top:1px solid var(--col-bd);
-}
-canvas { display:block }
+    /* ToDo */
+    .todo-toolbar{display:flex;align-items:center;gap:5px;padding:8px 0;flex-wrap:wrap;}
+    .section-label{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;}
+    .tool-btn{background:transparent;border:1px solid var(--border2);border-radius:7px;color:var(--text3);font-family:var(--mono);padding:4px 8px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+    .tool-btn:hover{background:var(--surface2);color:var(--text2);}
+    .tool-btn.active{border-color:var(--accent);color:var(--accent2);background:rgba(124,106,247,0.1);}
+    .tool-btn.ml-auto{margin-left:auto;}
+    .todo-add-row{display:flex;gap:7px;margin-bottom:10px;}
+    .todo-add-input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:9px 12px;color:var(--text);outline:none;transition:border-color 0.2s;}
+    .todo-add-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+    .todo-add-input::placeholder{color:var(--text3);}
+    .todo-add-btn{background:var(--accent);border:none;border-radius:var(--r);color:white;width:38px;font-size:20px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .todo-add-btn:hover{background:var(--accent2);}
 
-/* ── Corner brackets ── */
-.bkt {
-  position:fixed; width:18px; height:18px;
-  pointer-events:none; z-index:3; opacity:0.25;
-}
-.bkt-tl { top:5px;    left:5px;  border-top:2px solid var(--col); border-left:2px solid var(--col) }
-.bkt-tr { top:5px;    right:5px; border-top:2px solid var(--col); border-right:2px solid var(--col) }
-.bkt-bl { bottom:5px; left:5px;  border-bottom:2px solid var(--col); border-left:2px solid var(--col) }
-.bkt-br { bottom:5px; right:5px; border-bottom:2px solid var(--col); border-right:2px solid var(--col) }
+    /* Group */
+    .todo-group{margin-bottom:14px;}
+    .todo-group-header{display:flex;align-items:center;gap:7px;margin-bottom:5px;}
+    .todo-group-name{font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;flex:1;}
+    .todo-group-count{font-size:10px;font-family:var(--mono);color:var(--text3);}
+    .todo-group-btn{background:transparent;border:none;color:var(--text3);font-size:14px;cursor:pointer;padding:2px 4px;transition:color 0.2s;line-height:1;}
+    .todo-group-btn:hover{color:var(--accent2);}
+    .todo-group-btn.del:hover{color:var(--danger);}
 
-/* ── Menu button ── */
-#mbtn {
-  position:fixed; top:7px; right:7px;
-  width:36px; height:36px;
-  background:rgba(0,0,0,0.85);
-  border:1px solid var(--col-bd);
-  border-radius:3px;
-  color:var(--col);
-  font-size:20px;
-  cursor:pointer; z-index:600;
-  display:flex; align-items:center; justify-content:center;
-}
-#mbtn:active { background:rgba(255,255,255,0.06) }
+    /* Item */
+    .todo-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:9px 11px;display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;transition:opacity 0.15s,transform 0.15s;position:relative;}
+    .todo-item.done{opacity:0.4;}
+    .todo-item.dragging{opacity:0.4;transform:scale(0.97);}
+    .todo-item.drag-over{border-color:var(--accent);background:var(--surface2);}
+    .drag-handle{color:var(--text3);cursor:grab;font-size:14px;padding:2px 3px 2px 0;flex-shrink:0;touch-action:none;user-select:none;margin-top:1px;}
+    .drag-handle:active{cursor:grabbing;}
+    .todo-check{width:17px;height:17px;border-radius:50%;border:2px solid var(--border2);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;background:transparent;margin-top:1px;}
+    .todo-check:hover{border-color:var(--accent);}
+    .todo-item.done .todo-check{background:var(--accent);border-color:var(--accent);}
+    .todo-check-icon{color:white;font-size:9px;display:none;}
+    .todo-item.done .todo-check-icon{display:block;}
+    .todo-body{flex:1;min-width:0;}
+    .todo-text{font-size:13px;color:var(--text);cursor:pointer;user-select:none;word-break:break-word;}
+    .todo-item.done .todo-text{text-decoration:line-through;color:var(--text3);}
+    .todo-meta{display:flex;gap:5px;align-items:center;margin-top:3px;flex-wrap:wrap;}
+    .todo-date-tag{font-size:9px;font-family:var(--mono);color:var(--text3);background:var(--surface2);border-radius:4px;padding:1px 5px;}
+    .todo-date-tag.overdue{color:var(--danger);background:rgba(248,113,113,0.1);}
+    .todo-priority{font-size:11px;font-weight:700;}
+    .todo-priority.p1{color:var(--p1);}
+    .todo-priority.p2{color:var(--p2);}
+    .todo-priority.p3{color:var(--p3);}
+    .todo-actions{display:flex;gap:2px;flex-shrink:0;}
+    .todo-action-btn{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:3px;border-radius:4px;transition:all 0.2s;line-height:1;}
+    .todo-action-btn:hover{color:var(--text);background:var(--surface2);}
+    .todo-del-btn:hover{color:var(--danger) !important;}
 
-/* ── Menu popup ── */
-#mpop {
-  position:fixed; top:50px; right:7px;
-  width:290px; max-height:84vh;
-  overflow-y:auto;
-  background:#000;
-  border:1px solid var(--col-bd);
-  border-radius:3px;
-  padding:12px 14px 18px;
-  z-index:600; display:none;
-  touch-action:auto;
-}
-#mpop.open { display:block }
+    /* Group drop zone */
+    .group-drop-zone{height:32px;border:2px dashed var(--border2);border-radius:var(--r);display:none;align-items:center;justify-content:center;font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:4px;transition:all 0.2s;}
+    .group-drop-zone.active{display:flex;border-color:var(--accent);color:var(--accent2);background:rgba(124,106,247,0.05);}
 
-.m-hd {
-  display:flex; justify-content:space-between; align-items:center;
-  font-size:9px; letter-spacing:4px;
-  color:var(--col); opacity:0.40;
-  padding-bottom:8px; margin-bottom:12px;
-  border-bottom:1px solid var(--col-bd);
-}
-.m-close {
-  background:none; border:none;
-  color:var(--col); font-size:14px; opacity:0.40;
-  cursor:pointer; padding:0 2px; font-family:inherit;
-}
-.m-grp  { margin-bottom:16px }
-.m-gtl  {
-  font-size:8px; letter-spacing:3px;
-  color:var(--col); opacity:0.35; margin-bottom:9px;
-}
-.m-row  {
-  display:flex; align-items:center;
-  justify-content:space-between; margin-bottom:8px;
-}
-.m-lbl  { color:rgba(255,255,255,0.55); font-size:12px }
-.m-pair { display:flex; gap:4px }
+    /* Edit Panel */
+    .edit-panel{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;margin-bottom:4px;display:flex;flex-direction:column;gap:7px;}
+    .edit-row{display:flex;gap:6px;align-items:center;}
+    .edit-label{font-size:10px;font-family:var(--mono);color:var(--text3);min-width:40px;flex-shrink:0;}
+    .edit-input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:6px 9px;color:var(--text);outline:none;transition:border-color 0.2s;}
+    .edit-input:focus{border-color:var(--accent);}
 
-.tbtn {
-  background:rgba(255,255,255,0.03);
-  border:1px solid rgba(255,255,255,0.10);
-  border-radius:2px;
-  color:rgba(255,255,255,0.28);
-  font-size:10px; letter-spacing:1px;
-  padding:5px 11px;
-  cursor:pointer;
-  font-family:'Courier New',monospace;
-  min-width:52px; text-align:center;
-  transition:all .10s;
-}
-.tbtn.on {
-  background:rgba(255,255,255,0.06);
-  border-color:var(--col);
-  color:var(--col);
-}
+    /* Priority buttons — fixed active states */
+    .priority-btns{display:flex;gap:4px;flex-wrap:wrap;}
+    .prio-btn{padding:3px 9px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;}
+    .prio-btn[data-prio="none"].sel{border-color:var(--text2);color:var(--text);background:var(--surface3);}
+    .prio-btn[data-prio="p3"].sel{border-color:var(--p3);color:var(--p3);background:rgba(251,191,36,0.15);}
+    .prio-btn[data-prio="p2"].sel{border-color:var(--p2);color:var(--p2);background:rgba(251,146,60,0.15);}
+    .prio-btn[data-prio="p1"].sel{border-color:var(--p1);color:var(--p1);background:rgba(248,113,113,0.15);}
 
-/* Color swatches */
-.color-row { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:9px }
-.sw {
-  width:28px; height:28px;
-  border-radius:2px; border:2px solid transparent;
-  cursor:pointer; flex-shrink:0;
-}
-.sw.on { border-color:#fff }
+    .edit-actions{display:flex;justify-content:flex-end;gap:5px;margin-top:2px;}
+    .edit-save{background:var(--accent);border:none;border-radius:8px;color:white;font-size:12px;font-weight:700;padding:6px 14px;cursor:pointer;}
+    .edit-cancel{background:transparent;border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-size:12px;padding:6px 12px;cursor:pointer;}
 
-/* Sliders */
-.sgrp { margin-bottom:12px }
-.shd  { display:flex; justify-content:space-between; margin-bottom:5px }
-.snm  { font-size:11px; color:rgba(255,255,255,0.45) }
-.svl  { font-size:11px; color:var(--col); min-width:40px; text-align:right }
+    /* Modals */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+    .modal-overlay.open{opacity:1;pointer-events:all;}
+    .modal-sheet{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;border-top:1px solid var(--border2);width:100%;max-width:520px;margin:0 auto;padding:16px 18px calc(18px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);}
+    .modal-overlay.open .modal-sheet{transform:translateY(0);}
+    .modal-title{font-size:14px;font-weight:700;margin-bottom:11px;}
+    .modal-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 13px;color:var(--text);outline:none;margin-bottom:9px;transition:border-color 0.2s;}
+    .modal-input:focus{border-color:var(--accent);}
+    .modal-submit{width:100%;background:var(--accent);border:none;border-radius:var(--r);color:white;font-size:13px;font-weight:700;padding:11px;cursor:pointer;}
+    .settings-modal{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.3s;backdrop-filter:blur(4px);}
+    .settings-modal.open{opacity:1;pointer-events:all;}
+    .settings-sheet{background:var(--surface);border-radius:var(--rl) var(--rl) 0 0;border-top:1px solid var(--border2);width:100%;max-width:520px;margin:0 auto;padding-bottom:calc(18px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);max-height:85dvh;overflow-y:auto;}
+    .settings-modal.open .settings-sheet{transform:translateY(0);}
+    .settings-handle{width:36px;height:4px;background:var(--surface3);border-radius:2px;margin:10px auto 0;}
+    .settings-title{font-size:14px;font-weight:700;padding:13px 16px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
+    .settings-close{background:transparent;border:none;color:var(--text3);font-size:17px;cursor:pointer;}
+    .settings-body{padding:13px 16px;display:flex;flex-direction:column;gap:13px;}
+    .settings-section{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;}
+    .sig-textarea{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;color:var(--text);line-height:1.6;resize:none;outline:none;height:75px;width:100%;transition:border-color 0.2s;}
+    .sig-textarea:focus{border-color:var(--accent);}
+    .settings-save-btn{background:var(--accent);border:none;border-radius:var(--r);color:white;font-size:13px;font-weight:700;padding:10px;cursor:pointer;width:100%;margin-top:6px;}
+    .logout-btn{background:transparent;border:1px solid rgba(248,113,113,0.3);border-radius:var(--r);color:var(--danger);font-size:12px;font-weight:600;padding:9px;cursor:pointer;width:100%;}
+    .add-acct-btn{background:transparent;border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-size:12px;font-weight:600;padding:9px;cursor:pointer;width:100%;transition:all 0.2s;}
+    .add-acct-btn:hover{background:var(--surface2);}
 
-input[type=range] {
-  -webkit-appearance:none;
-  width:100%; height:3px;
-  background:rgba(255,255,255,0.10);
-  border-radius:2px; outline:none; cursor:pointer;
-  touch-action:auto;
-}
-input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance:none;
-  width:14px; height:14px;
-  background:var(--col); border-radius:2px;
-}
-input[type=range]::-moz-range-thumb {
-  width:14px; height:14px;
-  background:var(--col); border-radius:2px; border:none;
-}
-input[type=color] {
-  width:34px; height:28px;
-  border:1px solid rgba(255,255,255,0.18);
-  border-radius:2px; padding:1px; background:#000; cursor:pointer;
-}
+    /* Bottom */
+    .bottom-area{flex-shrink:0;}
+    .bottom-mail-tabs{display:none;gap:4px;padding:7px 14px 0;background:var(--surface);border-top:1px solid var(--border);}
+    .bottom-mail-tabs.visible{display:flex;}
+    .bottom-mail-tab{flex:1;padding:7px 4px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:4px;}
+    .bottom-mail-tab.active{background:var(--surface2);border-color:var(--accent);color:var(--accent2);box-shadow:0 0 10px var(--accent-glow);}
+    nav{display:flex;background:var(--surface);padding:5px 0 calc(5px + env(safe-area-inset-bottom));}
+    .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;background:transparent;border:none;color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;transition:all 0.2s;position:relative;}
+    .nav-btn.active{color:var(--accent2);}
+    .nav-icon{font-size:18px;}
+    .nav-dot{position:absolute;top:4px;right:calc(50% - 14px);width:5px;height:5px;background:var(--unread);border-radius:50%;display:none;}
+    .nav-btn.has-dot .nav-dot{display:block;}
+    .view{display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
+    .view.active{display:flex;}
 
-/* Reset button */
-.reset-btn {
-  background:rgba(255,255,255,0.03);
-  border:1px solid rgba(255,255,255,0.15);
-  border-radius:2px;
-  color:rgba(255,255,255,0.40);
-  font-size:10px; letter-spacing:1px;
-  padding:4px 10px;
-  cursor:pointer;
-  font-family:'Courier New',monospace;
-  white-space:nowrap;
-}
-.reset-btn:active { background:rgba(255,255,255,0.08); color:var(--col) }
-
-/* ── Instruction overlay ── */
-#inst {
-  position:fixed; inset:0;
-  background:rgba(0,0,0,0.96);
-  z-index:900;
-  display:flex; flex-direction:column;
-  align-items:center; justify-content:center;
-  text-align:center; padding:28px;
-  transition:opacity .60s ease;
-}
-#inst.fade { opacity:0; pointer-events:none }
-
-.i-ver  { font-size:8px; letter-spacing:4px; color:rgba(255,255,255,0.15); margin-bottom:26px }
-.i-icon { font-size:56px; margin-bottom:16px; animation:sway 2.2s ease-in-out infinite }
-@keyframes sway {
-  0%,100%{ transform:translateY(0) }
-  35%    { transform:translateY(-22px) }
-  65%    { transform:translateY(14px) }
-}
-.i-head { font-size:clamp(14px,3.2vmin,20px); color:var(--col); letter-spacing:3px; line-height:2.2; margin-bottom:8px }
-.i-note { font-size:clamp(10px,2vmin,13px); color:rgba(255,255,255,0.25); letter-spacing:1px; line-height:2.0; margin-bottom:28px }
-.i-tap  { font-size:11px; color:rgba(255,255,255,0.20); letter-spacing:3px; animation:pls 1.7s ease-in-out infinite }
-@keyframes pls { 0%,100%{opacity:.20} 50%{opacity:.50} }
-
-/* ── Status bar ── */
-#sbar {
-  position:fixed; bottom:4px; left:6px;
-  display:flex; align-items:center; gap:5px;
-  pointer-events:none; z-index:4;
-}
-.sbar-v { font-size:8px; color:rgba(255,255,255,0.07); letter-spacing:1px }
-.dot { width:5px; height:5px; border-radius:50%; background:#1a1a1a; transition:background .5s }
-.dot.ok  { background:#00ff88 }
-.dot.err { background:#ff3a3a }
-</style>
+    /* Debug panel */
+    #debug-panel{position:fixed;bottom:100px;left:10px;right:10px;background:rgba(0,0,0,0.92);border:1px solid #444;border-radius:8px;padding:10px;font-family:monospace;font-size:10px;color:#0f0;z-index:9999;max-height:200px;overflow-y:auto;display:none;}
+    #debug-panel.show{display:block;}
+    #debug-toggle{position:fixed;bottom:100px;right:10px;width:30px;height:30px;background:#333;border:1px solid #666;border-radius:50%;font-size:10px;color:#fff;cursor:pointer;z-index:10000;display:flex;align-items:center;justify-content:center;}
+    .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--surface2);border:1px solid var(--border2);border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;color:var(--text);opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;z-index:400;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  </style>
 </head>
+<body>
 
-<body class="pt">
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-logo">MailFocus</div>
+  <div class="login-ver">v1.6.5</div>
+  <div id="saved-accts-wrap" class="saved-accts-wrap" style="display:none">
+    <div class="saved-accts-label">保存済みアカウント</div>
+    <div id="saved-accts-list"></div>
+  </div>
+  <div class="login-card">
+    <div class="login-title">Googleでサインイン</div>
+    <div class="login-desc">Gmail APIで未読・スターメールを表示します。</div>
+    <input type="hidden" id="client-id-input" value="431372307551-8feqkb7jpbh3824sm1r40meobe0e124j.apps.googleusercontent.com">
+    <button class="google-btn" onclick="startLogin()">
+      <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-3.59-13.46-8.83l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Googleアカウントでログイン
+    </button>
+    <div class="login-hint">詳細は <a onclick="showSetupGuide()">セットアップガイド</a> を参照</div>
+  </div>
+</div>
 
-<div id="dim-overlay"></div>
-
-<div id="hud-root">
-  <div id="hud-mirror">
-    <div id="hud-ks">
-      <div id="hud">
-        <div id="s-spd"><canvas id="cvs-spd"></canvas></div>
-        <div id="s-clk"><canvas id="cvs-clk"></canvas></div>
-        <div id="s-cmp"><canvas id="cvs-cmp"></canvas></div>
+<!-- Main App -->
+<div id="app" style="display:none">
+  <header>
+    <div class="logo-wrap"><div class="logo">MailFocus</div><span class="version-badge">v1.6.5</span></div>
+    <div class="header-right">
+      <span class="badge badge-unread" id="unread-count">…</span>
+      <span class="badge badge-star" id="star-count">…</span>
+      <button class="icon-btn" onclick="openSettings()">⚙️</button>
+      <button class="icon-btn" id="refresh-btn" onclick="loadAllEmails()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+    </div>
+  </header>
+  <div id="mail-tabs-bar" style="display:none"><div class="account-filter" id="account-filter"></div></div>
+  <div class="main-content">
+    <div class="scroll-area" id="main-scroll">
+      <div class="view active" id="view-mail"><div id="mail-list-container"></div></div>
+      <div class="view" id="view-todo">
+        <div class="todo-toolbar">
+          <span class="section-label">タスク</span>
+          <button class="tool-btn" onclick="openGroupModal()">＋ グループ</button>
+          <button class="tool-btn" id="show-done-btn" onclick="toggleShowDone()">完了済みを表示</button>
+          <button class="tool-btn ml-auto active" id="sort-btn" onclick="cycleSortMode()">カスタム ↕</button>
+        </div>
+        <div class="todo-add-row">
+          <input type="text" class="todo-add-input" id="todo-input" placeholder="デフォルトグループに追加…" maxlength="200">
+          <button class="todo-add-btn" onclick="addTodo()">＋</button>
+        </div>
+        <div id="todo-groups-container"></div>
       </div>
+    </div>
+  </div>
+  <div class="bottom-area">
+    <div class="bottom-mail-tabs" id="bottom-mail-tabs">
+      <button class="bottom-mail-tab active" id="btab-unread" onclick="switchMailTab('unread')">✉️ 未読</button>
+      <button class="bottom-mail-tab" id="btab-starred" onclick="switchMailTab('starred')">⭐ スター</button>
+    </div>
+    <nav>
+      <button class="nav-btn active has-dot" id="nav-mail" onclick="switchView('mail')"><div class="nav-icon">✉️</div><span>メール</span><div class="nav-dot"></div></button>
+      <button class="nav-btn" id="nav-todo" onclick="switchView('todo')"><div class="nav-icon">✅</div><span>ToDo</span><div class="nav-dot"></div></button>
+    </nav>
+  </div>
+</div>
+
+<!-- Detail Overlay -->
+<div class="overlay" id="detail-overlay" onclick="handleOverlayClick(event)">
+  <div class="detail-sheet">
+    <div class="sheet-close-area" id="sheet-close-area"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <div class="sheet-subject" id="detail-subject">—</div>
+      <div class="sheet-meta">
+        <div class="sheet-meta-row"><span class="meta-label">From</span><span class="meta-value" id="detail-from">—</span></div>
+        <div class="sheet-meta-row"><span class="meta-label">To</span><span class="meta-value" id="detail-to">—</span></div>
+        <div class="sheet-meta-row"><span class="meta-label">Date</span><span class="meta-value" id="detail-date">—</span></div>
+        <div class="sheet-meta-row"><span class="meta-label">Acct</span><span class="meta-value" id="detail-acct">—</span></div>
+      </div>
+    </div>
+    <div class="body-toggle-bar">
+      <button class="body-toggle-btn active" id="toggle-plain" onclick="setBodyMode('plain')">テキスト</button>
+      <button class="body-toggle-btn" id="toggle-html" onclick="setBodyMode('html')">HTML</button>
+    </div>
+    <div class="sheet-body" id="detail-body"></div>
+    <div class="sheet-body-html" id="detail-body-html" style="display:none;overflow-y:auto;padding:0;background:white;"></div>
+    <div class="reply-panel" id="reply-panel">
+      <div class="reply-inner">
+        <div class="reply-to-row">宛先: <span class="reply-to-addr" id="reply-to-addr">—</span><span class="draft-indicator" id="draft-indicator">💾 下書き</span></div>
+        <div id="reply-quote-block" style="display:none"><div class="quote-label">引用元</div><div class="reply-quote" id="reply-quote-text"></div></div>
+        <textarea class="reply-textarea" id="reply-textarea" placeholder="返信を入力…"></textarea>
+        <div class="reply-footer">
+          <button class="reply-cancel-btn" onclick="closeReply()">キャンセル</button>
+          <button class="reply-send-btn" id="reply-send-btn" onclick="sendReply()"><span id="reply-send-label">送信 ↗</span><span class="spinner" id="reply-spinner"></span></button>
+        </div>
+      </div>
+    </div>
+    <div id="attachments-bar" class="attachments-bar" style="display:none"></div>
+    <div id="thread-toggle" class="thread-toggle" style="display:none" onclick="toggleThread()">
+      <span>💬</span><span id="thread-toggle-label">スレッドを表示</span><span class="thread-count" id="thread-count-badge"></span>
+    </div>
+    <div id="thread-messages" class="thread-messages" style="display:none"></div>
+    <div class="sheet-actions">
+      <button class="action-btn btn-reply" onclick="toggleReply()">↩ 返信</button>
+      <button class="action-btn btn-read" onclick="markRead()">✓ 既読</button>
+      <button class="action-btn" onclick="markUnread()">● 未読</button>
+      <button class="action-btn btn-star" id="star-action-btn" onclick="toggleStar()">★ スター</button>
     </div>
   </div>
 </div>
 
-<div class="bkt bkt-tl"></div>
-<div class="bkt bkt-tr"></div>
-<div class="bkt bkt-bl"></div>
-<div class="bkt bkt-br"></div>
-
-<button id="mbtn" aria-label="設定">⋮</button>
-
-<div id="mpop">
-  <div class="m-hd">
-    <span>HUD SETTINGS v0.1.2</span>
-    <button class="m-close" id="mclose">✕</button>
-  </div>
-
-  <!-- COLOR -->
-  <div class="m-grp">
-    <div class="m-gtl">DISPLAY COLOR</div>
-    <div class="color-row">
-      <button class="sw" data-c="#00ffff" style="background:#00ffff" title="Cyan"></button>
-      <button class="sw" data-c="#ffffff" style="background:#ffffff" title="White"></button>
-      <button class="sw" data-c="#7fff00" style="background:#7fff00" title="Chartreuse"></button>
-      <button class="sw" data-c="#ff00ff" style="background:#ff00ff" title="Magenta"></button>
-      <button class="sw" data-c="#ff8c00" style="background:#ff8c00" title="Orange"></button>
-      <button class="sw" data-c="#ff3a3a" style="background:#ff3a3a" title="Red"></button>
-    </div>
-    <div class="m-row" style="margin-bottom:0">
-      <span class="m-lbl">カスタムカラー</span>
-      <input type="color" id="color-pick" value="#00ffff">
-    </div>
-  </div>
-
-  <!-- BRIGHTNESS -->
-  <div class="m-grp">
-    <div class="m-gtl">BRIGHTNESS</div>
-    <div class="sgrp" style="margin-bottom:0">
-      <div class="shd">
-        <span class="snm">明るさ（スワイプでも調整可）</span>
-        <span class="svl" id="dim-val">100%</span>
-      </div>
-      <input type="range" id="dim-slider" min="0" max="94" value="0" step="1">
-    </div>
-  </div>
-
-  <!-- ORIENTATION -->
-  <div class="m-grp">
-    <div class="m-gtl">DISPLAY ORIENTATION</div>
-    <div class="m-row" style="margin-bottom:0">
-      <span class="m-lbl">表示方向</span>
-      <div class="m-pair">
-        <button class="tbtn on" id="btn-pt">縦向き</button>
-        <button class="tbtn"    id="btn-ls">横向き</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MIRROR -->
-  <div class="m-grp">
-    <div class="m-gtl">MIRROR / FLIP</div>
-    <div class="m-row">
-      <span class="m-lbl">左右反転</span>
-      <button class="tbtn" id="btn-mh">OFF</button>
-    </div>
-    <div class="m-row" style="margin-bottom:0">
-      <span class="m-lbl">上下反転</span>
-      <button class="tbtn" id="btn-mv">OFF</button>
-    </div>
-  </div>
-
-  <!-- KEYSTONE -->
-  <div class="m-grp" style="margin-bottom:0">
-    <div class="m-gtl">KEYSTONE CORRECTION（台形補正）</div>
-    <div class="sgrp">
-      <div class="shd">
-        <span class="snm">左右歪み (H)</span>
-        <span class="svl" id="ksh-v">0°</span>
-      </div>
-      <input type="range" id="ksh" min="-28" max="28" value="0" step="1">
-    </div>
-    <div class="sgrp">
-      <div class="shd">
-        <span class="snm">上下歪み (V)</span>
-        <span class="svl" id="ksv-v">0°</span>
-      </div>
-      <input type="range" id="ksv" min="-28" max="28" value="0" step="1">
-    </div>
-    <div class="m-row" style="margin-bottom:0">
-      <span class="m-lbl">台形補正をリセット</span>
-      <button class="reset-btn" id="btn-ks-reset">RESET</button>
+<!-- Settings -->
+<div class="settings-modal" id="settings-modal" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-sheet">
+    <div class="settings-handle"></div>
+    <div class="settings-title">⚙️ 設定<button class="settings-close" onclick="closeSettings()">✕</button></div>
+    <div class="settings-body">
+      <div><div class="settings-section">ログイン中のアカウント</div><div id="settings-accounts-list"></div><button class="add-acct-btn" onclick="closeSettings();showLoginForm()">＋ アカウントを追加</button></div>
+      <div><div class="settings-section">署名</div><textarea class="sig-textarea" id="sig-textarea" placeholder="例：よろしくお願いします。&#10;山田 太郎"></textarea><button class="settings-save-btn" onclick="saveSettings()">保存する</button></div>
+      <button class="logout-btn" onclick="logoutAll()">🚪 全アカウントをログアウト</button>
     </div>
   </div>
 </div>
 
-<!-- Instruction overlay -->
-<div id="inst">
-  <div class="i-ver">HUD v0.1.2 — CAR HEAD-UP DISPLAY</div>
-  <div class="i-icon">☝️</div>
-  <div class="i-head">
-    スワイプ ↑ で明るく<br>
-    スワイプ ↓ で暗く
+<!-- Group Modal -->
+<div class="modal-overlay" id="group-modal" onclick="if(event.target===this)closeGroupModal()">
+  <div class="modal-sheet">
+    <div class="modal-title">グループを追加</div>
+    <input type="text" class="modal-input" id="group-name-input" placeholder="グループ名…" maxlength="30">
+    <button class="modal-submit" onclick="submitAddGroup()">追加</button>
   </div>
-  <div class="i-note">
-    画面の輝度は本体の画面設定から最大に<br>
-    してください<br>
-    <br>
-    ⋮ メニューからカラー・向きを変更できます
-  </div>
-  <div class="i-tap">タップして開始 ▶</div>
 </div>
 
-<div id="sbar">
-  <span class="sbar-v">HUD v0.1.2</span>
-  <div class="dot" id="dot-gps" title="GPS"></div>
-  <div class="dot" id="dot-cmp" title="Compass"></div>
+<!-- Setup Guide -->
+<div class="settings-modal" id="guide-modal" onclick="if(event.target===this)closeGuide()">
+  <div class="settings-sheet">
+    <div class="settings-handle"></div>
+    <div class="settings-title">📋 セットアップガイド<button class="settings-close" onclick="closeGuide()">✕</button></div>
+    <div class="settings-body" style="font-size:13px;line-height:1.8;color:var(--text2)">
+      <p style="color:var(--text);font-weight:700;margin-bottom:8px">Client ID取得手順</p>
+      <ol style="padding-left:18px;display:flex;flex-direction:column;gap:6px">
+        <li><a href="https://console.cloud.google.com/" target="_blank" style="color:var(--accent2)">Google Cloud Console</a> を開く</li>
+        <li>新しいプロジェクトを作成</li>
+        <li>APIとサービス → ライブラリ → Gmail API を有効化</li>
+        <li>OAuth同意画面 → 外部で作成、「対象」でテストユーザーに自分のアドレスを追加</li>
+        <li>認証情報 → OAuthクライアントID → ウェブアプリケーション</li>
+        <li>承認済みJS生成元に <span id="guide-origin" style="font-family:var(--mono);font-size:11px;color:var(--accent2)"></span> を追加</li>
+      </ol>
+      <button class="settings-save-btn" onclick="closeGuide()" style="margin-top:8px">閉じる</button>
+    </div>
+  </div>
 </div>
+
+<div class="toast" id="toast"></div>
+<div id="debug-toggle" onclick="document.getElementById('debug-panel').classList.toggle('show')">🔍</div>
+<div id="debug-panel" id="debug-panel"></div>
+
 
 <script>
-'use strict';
-// ═══════════════════════════════════════════════════════
-//  PERSISTENT STATE
-// ═══════════════════════════════════════════════════════
-const SKEY = 'hud-v011';
-const ST = {
-  speed:   0,
-  heading: 0,
-  gpsOk:   false,
-  cmpOk:   false,
-  // ── saved ──
-  color: '#00ffff',
-  dim:   0,
-  ls:    false,
-  mH:    false,
-  mV:    false,
-  ksH:   0,
-  ksV:   0,
-};
+const CLIENT_ID='431372307551-8feqkb7jpbh3824sm1r40meobe0e124j.apps.googleusercontent.com';
+const SCOPES='https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
+const TOKEN_STORAGE_KEY='mf-tokens-v1'; // stores [{email,clientId,displayName,token,tokenExpiry}]
 
-function loadST() {
-  try {
-    const s = JSON.parse(localStorage.getItem(SKEY) || 'null');
-    if (!s) return;
-    if (typeof s.color === 'string')  ST.color = s.color;
-    if (typeof s.dim   === 'number')  ST.dim   = s.dim;
-    if (typeof s.ls    === 'boolean') ST.ls    = s.ls;
-    if (typeof s.mH    === 'boolean') ST.mH    = s.mH;
-    if (typeof s.mV    === 'boolean') ST.mV    = s.mV;
-    if (typeof s.ksH   === 'number')  ST.ksH   = s.ksH;
-    if (typeof s.ksV   === 'number')  ST.ksV   = s.ksV;
-  } catch(_) {}
-}
-function saveST() {
-  try {
-    localStorage.setItem(SKEY, JSON.stringify({
-      color:ST.color, dim:ST.dim, ls:ST.ls,
-      mH:ST.mH, mV:ST.mV, ksH:ST.ksH, ksV:ST.ksV,
-    }));
-  } catch(_) {}
-}
+let accounts=[],activeAcctFilter='all',emails={unread:[],starred:[]};
+let currentMailTab='unread',currentMail=null,signature='',draftTimer=null,bodyMode='plain';
+let todoGroups=[],showDone=false,sortMode='custom',editingId=null,addingToGroup=null;
+// Drag state
+let dragItem=null,dragSourceGid=null,dragOverItem=null,dragOverGid=null;
 
-// ═══════════════════════════════════════════════════════
-//  COLOR HELPERS
-// ═══════════════════════════════════════════════════════
-function hexToRgb(hex) {
-  return [
-    parseInt(hex.slice(1,3),16),
-    parseInt(hex.slice(3,5),16),
-    parseInt(hex.slice(5,7),16),
-  ];
+// ── IndexedDB ──
+let db=null;
+async function initDB(){return new Promise((res,rej)=>{const req=indexedDB.open('MailFocusDB',1);req.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('kv'))d.createObjectStore('kv',{keyPath:'k'});};req.onsuccess=e=>{db=e.target.result;res();};req.onerror=()=>rej();});}
+async function dbSet(k,v){if(!db)return;const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put({k,v});}
+async function dbGet(k){if(!db)return null;return new Promise(res=>{const tx=db.transaction('kv','readonly');const req=tx.objectStore('kv').get(k);req.onsuccess=()=>res(req.result?.v??null);req.onerror=()=>res(null);});}
+async function saveTodosDB(){await dbSet('todoGroups',todoGroups);}
+
+// ── Saved tokens ──
+function loadSavedTokens(){
+  try{
+    var raw=localStorage.getItem(TOKEN_STORAGE_KEY);
+    dbg('loadSavedTokens: raw='+(raw?raw.slice(0,100):'NULL/EMPTY'));
+    if(!raw)return[];
+    var arr=JSON.parse(raw);
+    dbg('loadSavedTokens: parsed '+arr.length+' entries');
+    return arr;
+  }catch(e){dbg('loadSavedTokens ERROR: '+e.message);return[];}
 }
-function setCSSColor(hex) {
-  const [r,g,b] = hexToRgb(hex);
-  document.documentElement.style.setProperty('--col', hex);
-  document.documentElement.style.setProperty('--col-bd', `rgba(${r},${g},${b},0.20)`);
+function saveTokens(arr){
+  try{
+    localStorage.setItem(TOKEN_STORAGE_KEY,JSON.stringify(arr));
+    dbg('saveTokens: saved '+arr.length+' entries. Key='+TOKEN_STORAGE_KEY);
+    // Verify it was actually saved
+    var verify=localStorage.getItem(TOKEN_STORAGE_KEY);
+    dbg('verify read back: '+(verify?verify.slice(0,80):'NULL'));
+  }catch(e){dbg('saveTokens ERROR: '+e.message);}
+}
+function isTokenValid(entry){
+  var now=Date.now();
+  var valid=!!(entry.token&&entry.tokenExpiry&&now<entry.tokenExpiry-60000);
+  dbg('isTokenValid('+entry.email+'): token='+(entry.token?'YES':'NO')+' expiry='+entry.tokenExpiry+' now='+now+' diff='+((entry.tokenExpiry||0)-now)+'ms → '+(valid?'VALID':'EXPIRED'));
+  return valid;
 }
 
-// ═══════════════════════════════════════════════════════
-//  7-SEGMENT — flat, full brightness, NO inactive segs
-// ═══════════════════════════════════════════════════════
-const SEG = {
-  '0':[1,1,1,1,1,1,0],'1':[0,1,1,0,0,0,0],
-  '2':[1,1,0,1,1,0,1],'3':[1,1,1,1,0,0,1],
-  '4':[0,1,1,0,0,1,1],'5':[1,0,1,1,0,1,1],
-  '6':[1,0,1,1,1,1,1],'7':[1,1,1,0,0,0,0],
-  '8':[1,1,1,1,1,1,1],'9':[1,1,1,1,0,1,1],
-  '-':[0,0,0,0,0,0,1],' ':[0,0,0,0,0,0,0],
-};
+// ── Boot ──
+window.onload=async()=>{
+  dbg('=== onload start === CODE VERSION: v1.6.5 ===');
+  dbg('localStorage available: '+(typeof localStorage!=='undefined'));
+  dbg('localStorage.length: '+localStorage.length);
+  // List all keys
+  var keys=[];for(var i=0;i<localStorage.length;i++)keys.push(localStorage.key(i));
+  dbg('localStorage keys: '+JSON.stringify(keys));
+  await initDB();
+  signature=await dbGet('signature')||'';
+  showDone=(await dbGet('showDone'))===true;
+  sortMode=await dbGet('sortMode')||'custom';
+  const sg=await dbGet('todoGroups');
+  todoGroups=sg&&sg.length?sg:[{id:'default',name:'タスク',items:[]}];
 
-function drawDigit(ctx, x, y, w, h, ch, col) {
-  const s  = SEG[ch] ?? SEG[' '];
-  // thicker strokes for visibility
-  const sw = Math.max(3, w * 0.13);
-  const g  = sw * 0.55;
-  const r  = sw * 0.46;
-  const my = y + h * 0.5;
+  // Render todos immediately (even before login)
+  renderTodos();
 
-  ctx.lineCap    = 'round';
-  ctx.lineJoin   = 'round';
-  ctx.strokeStyle = col;
-  ctx.lineWidth   = sw;
-  ctx.shadowBlur  = 0;
+  // Auto-login logic
+  // IMPORTANT: Check tokens BEFORE loading any external scripts
+  const saved=loadSavedTokens();
+  dbg('saved.length='+saved.length);
 
-  const seg = (on, x1,y1,x2,y2) => {
-    if (!on) return;   // ← skip OFF segments entirely
-    ctx.beginPath();
-    ctx.moveTo(x1,y1);
-    ctx.lineTo(x2,y2);
-    ctx.stroke();
-  };
-  seg(s[0], x+g+r,  y+r,     x+w-g-r, y+r    );  // top
-  seg(s[1], x+w-r,  y+g+r,   x+w-r,   my-g   );  // top-right
-  seg(s[2], x+w-r,  my+g,    x+w-r,   y+h-g-r);  // bot-right
-  seg(s[3], x+g+r,  y+h-r,   x+w-g-r, y+h-r  );  // bottom
-  seg(s[4], x+r,    my+g,    x+r,     y+h-g-r);  // bot-left
-  seg(s[5], x+r,    y+g+r,   x+r,     my-g   );  // top-left
-  seg(s[6], x+g+r,  my,      x+w-g-r, my     );  // middle
-}
-
-function drawColon(ctx, x, y, w, h, col) {
-  const r = Math.max(3, w * 0.14);
-  ctx.fillStyle  = col;
-  ctx.shadowBlur = 0;
-  ctx.beginPath(); ctx.arc(x+w/2, y+h*.33, r, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x+w/2, y+h*.67, r, 0, Math.PI*2); ctx.fill();
-}
-
-// Measure pixel width of a digit string
-function measureStr(str, dW) {
-  const cW = dW*0.38, sp = dW*0.10;
-  let total = 0;
-  for (let i=0; i<str.length; i++) {
-    total += str[i]===':'? cW : dW;
-    if (i < str.length-1) total += sp;
-  }
-  return total;
-}
-
-// Compute digit width that fits both W (max) and H (max)
-// Returns {dW, dH} scaled to fit in (maxW × maxH)
-function fitStr(str, maxW, maxH, aspect /* dH/dW ratio */) {
-  // start with height constraint
-  let dH = maxH;
-  let dW = dH / aspect;
-  // check width
-  const tw = measureStr(str, dW);
-  if (tw > maxW) {
-    const scale = maxW / tw;
-    dW *= scale;
-    dH *= scale;
-  }
-  return { dW, dH };
-}
-
-function drawStr(ctx, str, x, y, dW, dH, col) {
-  const cW = dW*0.38, sp = dW*0.10;
-  let cx = x;
-  for (const ch of str) {
-    if (ch===':') { drawColon(ctx,cx,y,cW,dH,col); cx+=cW+sp; }
-    else           { drawDigit(ctx,cx,y,dW,dH,ch,col); cx+=dW+sp; }
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-//  CANVAS REFS
-// ═══════════════════════════════════════════════════════
-const csvSpd=document.getElementById('cvs-spd'); const ctxSpd=csvSpd.getContext('2d');
-const csvClk=document.getElementById('cvs-clk'); const ctxClk=csvClk.getContext('2d');
-const csvCmp=document.getElementById('cvs-cmp'); const ctxCmp=csvCmp.getContext('2d');
-
-// ═══════════════════════════════════════════════════════
-//  DRAW — SPEED
-// ═══════════════════════════════════════════════════════
-function drawSpeed() {
-  const el=document.getElementById('s-spd');
-  const W=el.clientWidth, H=el.clientHeight;
-  if (!W||!H) return;
-  csvSpd.width=W; csvSpd.height=H;
-  ctxSpd.clearRect(0,0,W,H);
-
-  const COL = ST.color;
-
-  // km/h label at bottom — bold, sized for visibility
-  const uFsz = Math.max(13, H * 0.10);
-  const uH   = uFsz * 1.8;  // reserved height for unit
-
-  // digits fill remaining height, also constrained by width
-  const str   = ST.gpsOk ? String(Math.round(ST.speed)).padStart(3,' ') : '---';
-  const avH   = H - uH - H*0.02;
-  const avW   = W * 0.92;
-  const { dW, dH } = fitStr(str, avW, avH * 0.92, 1.9);
-
-  const tw = measureStr(str, dW);
-  drawStr(ctxSpd, str, (W-tw)/2, (avH-dH)/2, dW, dH, COL);
-
-  // km/h — bold
-  ctxSpd.fillStyle    = COL;
-  ctxSpd.font         = `bold ${uFsz}px 'Courier New',monospace`;
-  ctxSpd.textAlign    = 'center';
-  ctxSpd.textBaseline = 'bottom';
-  ctxSpd.shadowBlur   = 0;
-  ctxSpd.fillText('km/h', W/2, H - H*0.01);
-}
-
-// ═══════════════════════════════════════════════════════
-//  DRAW — CLOCK
-// ═══════════════════════════════════════════════════════
-function drawClock() {
-  const el=document.getElementById('s-clk');
-  const W=el.clientWidth, H=el.clientHeight;
-  if (!W||!H) return;
-  csvClk.width=W; csvClk.height=H;
-  ctxClk.clearRect(0,0,W,H);
-
-  const COL = ST.color;
-  const now = new Date();
-  const hh  = String(now.getHours()).padStart(2,'0');
-  const mm  = String(now.getMinutes()).padStart(2,'0');
-  const ss  = String(now.getSeconds()).padStart(2,'0');
-  const hmS = `${hh}:${mm}`;
-
-  // vertical split: HH:MM ~58%, gap ~6%, SS ~28%, rest padding
-  const hmMaxH = H * 0.56;
-  const ssMaxH = H * 0.26;
-  const hmMaxW = W * 0.90;
-  const ssMaxW = W * 0.90;
-
-  // fit HH:MM
-  const hm = fitStr(hmS, hmMaxW, hmMaxH, 1.9);
-  const tw1 = measureStr(hmS, hm.dW);
-  const hmY = H * 0.03;
-  drawStr(ctxClk, hmS, (W-tw1)/2, hmY, hm.dW, hm.dH, COL);
-
-  // fit SS
-  const ss2 = fitStr(ss, ssMaxW, ssMaxH, 1.9);
-  const tw2  = measureStr(ss, ss2.dW);
-  const ssY  = hmY + hm.dH + H * 0.06;
-  drawStr(ctxClk, ss, (W-tw2)/2, ssY, ss2.dW, ss2.dH, COL);
-}
-
-// ═══════════════════════════════════════════════════════
-//  DRAW — COMPASS
-//  Heading corrections:
-//    Landscape : UI is rotated –90°, device physically turned
-//                counter-clockwise → sensor reads +90° too much → subtract 90°
-//    mV (上下反転): device is flipped 180° → add 180°
-//  Corrections are cumulative.
-// ═══════════════════════════════════════════════════════
-const CARD = {0:'N',45:'NE',90:'E',135:'SE',180:'S',225:'SW',270:'W',315:'NW'};
-
-function drawCompass() {
-  const el=document.getElementById('s-cmp');
-  const W=el.clientWidth, H=Math.max(60,el.clientHeight);
-  if (!W) return;
-  csvCmp.width=W; csvCmp.height=H;
-  ctxCmp.clearRect(0,0,W,H);
-
-  const COL = ST.color;
-  // Landscape: rotate –90° (subtract); vertical flip: add 180°
-  let correction = 0;
-  if (ST.ls) correction -= 90;
-  if (ST.mV) correction += 180;
-  const hdg = ((ST.heading + correction) % 360 + 360) % 360;
-
-  const tB  = H * 0.66;   // tape base Y
-  const VIS = 100;          // visible degrees window
-  const ppd = W / VIS;
-
-  // base line — full brightness
-  ctxCmp.strokeStyle = COL;
-  ctxCmp.globalAlpha = 0.25;
-  ctxCmp.lineWidth   = 1;
-  ctxCmp.beginPath(); ctxCmp.moveTo(0,tB); ctxCmp.lineTo(W,tB); ctxCmp.stroke();
-  ctxCmp.globalAlpha = 1;
-
-  // ticks + labels — all at full COL, vary alpha only slightly
-  for (let d = Math.floor(hdg-VIS/2-5); d <= Math.ceil(hdg+VIS/2+5); d++) {
-    if (d % 5 !== 0) continue;
-    const nd = ((d % 360) + 360) % 360;
-    const px = W/2 + (d - hdg) * ppd;
-    if (px < -12 || px > W+12) continue;
-
-    const isCard = nd % 45 === 0;
-    const isMaj  = nd % 10 === 0;
-    const tH     = isCard ? tB*0.62 : isMaj ? tB*0.38 : tB*0.20;
-
-    ctxCmp.strokeStyle = COL;
-    ctxCmp.lineWidth   = isCard ? 2.5 : 1.5;
-    ctxCmp.globalAlpha = isCard ? 1.0 : isMaj ? 0.65 : 0.30;
-    ctxCmp.shadowBlur  = 0;
-    ctxCmp.beginPath(); ctxCmp.moveTo(px,tB); ctxCmp.lineTo(px,tB-tH); ctxCmp.stroke();
-    ctxCmp.globalAlpha = 1;
-
-    if (isMaj) {
-      const lbl  = CARD[nd] ?? String(nd);
-      const fSz  = isCard ? H * 0.175 : H * 0.130;
-      ctxCmp.fillStyle    = COL;
-      // bold font for all labels
-      ctxCmp.font         = `bold ${fSz}px 'Courier New',monospace`;
-      ctxCmp.textAlign    = 'center';
-      ctxCmp.textBaseline = 'bottom';
-      ctxCmp.globalAlpha  = isCard ? 1.0 : 0.65;
-      ctxCmp.shadowBlur   = 0;
-      ctxCmp.fillText(lbl, px, tB - tH - 2);
-      ctxCmp.globalAlpha = 1;
+  if(saved.length){
+    const valid=saved.filter(isTokenValid);
+    dbg('valid.length='+valid.length);
+    if(valid.length){
+      // Valid tokens — restore immediately, NO external script needed
+      dbg('→ VALID tokens found, restoring session');
+      accounts=valid.map(e=>({email:e.email,clientId:e.clientId,displayName:e.displayName,token:e.token}));
+      showApp();
+      loadAllEmails();
+      renderTodos();
+      scheduleTokenRefresh();
+      return;  // ← exits onload here, never loads GAPI
     }
+    // Tokens exist but expired — need to re-authenticate
+    dbg('→ tokens EXPIRED, attempting silent reauth');
+    showAutoReloginUI();
+    await loadGapi();
+    await loadGis();
+    const refreshed=[];
+    for(const entry of saved){
+      const ok=await autoRelogin(entry);
+      if(ok) refreshed.push(ok);
+    }
+    hideAutoReloginUI();
+    if(refreshed.length){
+      accounts=refreshed;
+      showApp();
+      loadAllEmails();
+      renderTodos();
+      scheduleTokenRefresh();
+      return;
+    }
+    // Re-auth failed — show saved accounts for manual tap-to-login
+    dbg('→ silent reauth failed, showing login chips');
+    await loadGapi();
+    renderSavedAccounts(saved);
+    showToast('アカウントをタップしてログインしてください');
+  } else {
+    // No saved accounts at all — load GAPI and show login screen
+    dbg('→ no saved accounts, showing login screen');
+    await loadGapi();
   }
+};
 
-  // centre indicator ▼
-  const triH = tB * 0.22, triW = triH * 0.85;
-  ctxCmp.fillStyle   = COL;
-  ctxCmp.shadowBlur  = 0;
-  ctxCmp.globalAlpha = 1;
-  ctxCmp.beginPath();
-  ctxCmp.moveTo(W/2,          tB + 2);
-  ctxCmp.lineTo(W/2 - triW/2, tB - triH + 2);
-  ctxCmp.lineTo(W/2 + triW/2, tB - triH + 2);
-  ctxCmp.closePath(); ctxCmp.fill();
+function loadGapi(){return new Promise(res=>{const s=document.createElement('script');s.src='https://apis.google.com/js/api.js';s.onload=()=>gapi.load('client',res);document.head.appendChild(s);});}
+function loadGis(){return new Promise(res=>{if(window.google?.accounts){res();return;}const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onload=res;document.head.appendChild(s);});}
 
-  ctxCmp.strokeStyle = COL;
-  ctxCmp.lineWidth   = 2;
-  ctxCmp.beginPath();
-  ctxCmp.moveTo(W/2, tB - triH);
-  ctxCmp.lineTo(W/2, tB - tB*0.64);
-  ctxCmp.stroke();
-
-  // edge fades
-  const fw = W * 0.08;
-  const gL = ctxCmp.createLinearGradient(0,0,fw,0);
-  gL.addColorStop(0,'rgba(0,0,0,1)'); gL.addColorStop(1,'rgba(0,0,0,0)');
-  const gR = ctxCmp.createLinearGradient(W-fw,0,W,0);
-  gR.addColorStop(0,'rgba(0,0,0,0)'); gR.addColorStop(1,'rgba(0,0,0,1)');
-  ctxCmp.fillStyle=gL; ctxCmp.fillRect(0,0,fw,tB+4);
-  ctxCmp.fillStyle=gR; ctxCmp.fillRect(W-fw,0,fw,tB+4);
-
-  // heading readout
-  const hdgStr  = String(Math.round(hdg)).padStart(3,'0') + '°';
-  const hdgFsz  = Math.min((H - tB) * 0.80, H * 0.22);
-  ctxCmp.fillStyle    = COL;
-  ctxCmp.font         = `bold ${hdgFsz}px 'Courier New',monospace`;
-  ctxCmp.textAlign    = 'center';
-  ctxCmp.textBaseline = 'top';
-  ctxCmp.shadowBlur   = 0;
-  ctxCmp.globalAlpha  = 1;
-  ctxCmp.fillText(hdgStr, W/2, tB + 3);
+// ── Auth ──
+function renderSavedAccounts(saved){
+  const wrap=document.getElementById('saved-accts-wrap'),list=document.getElementById('saved-accts-list');
+  if(!saved.length){wrap.style.display='none';return;}
+  wrap.style.display='';
+  list.innerHTML=saved.map(a=>{
+    const name=(a.displayName||'').trim()||(a.email||'').split('@')[0]||'User';
+    return `<div class="account-chip" onclick="quickLogin('${esc(a.email)}','${esc(a.clientId)}')">
+      <div class="account-avatar">${name[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.email||'')}</div>
+      </div>
+      <button class="account-remove" onclick="event.stopPropagation();removeSaved('${esc(a.email)}')">✕</button>
+    </div>`;
+  }).join('');
 }
+function removeSaved(email){const s=loadSavedTokens().filter(a=>a.email!==email);saveTokens(s);renderSavedAccounts(s);}
+async function quickLogin(email,clientId){document.getElementById('client-id-input').value=clientId||CLIENT_ID;await startLogin();}
 
-// ═══════════════════════════════════════════════════════
-//  ANIMATION LOOP
-// ═══════════════════════════════════════════════════════
-let _lastSec = -1;
-function loop() {
-  const sec = new Date().getSeconds();
-  drawSpeed();
-  drawCompass();
-  if (sec !== _lastSec) { _lastSec = sec; drawClock(); }
-  document.getElementById('dot-gps').className='dot '+(ST.gpsOk?'ok':'err');
-  document.getElementById('dot-cmp').className='dot '+(ST.cmpOk?'ok':'');
-  requestAnimationFrame(loop);
-}
-
-// ═══════════════════════════════════════════════════════
-//  GPS
-// ═══════════════════════════════════════════════════════
-function startGPS() {
-  if (!navigator.geolocation) return;
-  navigator.geolocation.watchPosition(
-    p => { ST.gpsOk=true; ST.speed = p.coords.speed!=null ? p.coords.speed*3.6 : 0; },
-    ()=> { ST.gpsOk=false; },
-    { enableHighAccuracy:true, maximumAge:1000, timeout:15000 }
-  );
-}
-
-// ═══════════════════════════════════════════════════════
-//  COMPASS
-// ═══════════════════════════════════════════════════════
-let _cf = null;
-function onOrient(e) {
-  let raw = null;
-  if (typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)) {
-    raw = e.webkitCompassHeading;
-  } else if (e.alpha != null) {
-    raw = ((360 - e.alpha) % 360 + 360) % 360;
+// ── Auto re-login UI ──
+function showAutoReloginUI(){
+  // Show a subtle spinner over login screen instead of blank screen
+  var el=document.getElementById('login-screen');
+  if(el){
+    el.style.display='';
+    var spin=document.createElement('div');
+    spin.id='auto-relogin-spinner';
+    spin.style.cssText='position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:600;gap:16px;';
+    spin.innerHTML='<div style="width:36px;height:36px;border:3px solid rgba(167,139,250,0.2);border-top-color:var(--accent2);border-radius:50%;animation:spin 0.8s linear infinite;"></div>'
+      +'<div style="font-family:var(--mono);font-size:12px;color:var(--text3);">ログイン中…</div>';
+    document.body.appendChild(spin);
   }
-  if (raw == null) return;
-  ST.cmpOk = true;
-  if (_cf == null) { _cf = raw; }
-  else {
-    let d = raw - _cf;
-    if (d > 180) d -= 360; if (d < -180) d += 360;
-    _cf = ((_cf + d * 0.18) + 360) % 360;
-  }
-  ST.heading = _cf;
 }
-function startCompass() {
-  if (typeof DeviceOrientationEvent === 'undefined') return;
-  const attach = () => {
-    window.addEventListener('deviceorientationabsolute', onOrient, true);
-    window.addEventListener('deviceorientation',         onOrient, true);
-  };
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-    DeviceOrientationEvent.requestPermission()
-      .then(r => { if (r==='granted') attach(); })
-      .catch(()=>{});
-  } else { attach(); }
+function hideAutoReloginUI(){
+  var el=document.getElementById('auto-relogin-spinner');
+  if(el) el.remove();
+  var ls=document.getElementById('login-screen');
+  if(ls) ls.style.display='none';
 }
 
-// ═══════════════════════════════════════════════════════
-//  WAKE LOCK
-// ═══════════════════════════════════════════════════════
-let _wl = null;
-async function requestWakeLock() {
-  try {
-    if ('wakeLock' in navigator) _wl = await navigator.wakeLock.request('screen');
-  } catch(_) {}
-}
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && !_wl) requestWakeLock();
-});
-
-// ═══════════════════════════════════════════════════════
-//  BRIGHTNESS
-// ═══════════════════════════════════════════════════════
-function setDim(v) {
-  ST.dim = Math.max(0, Math.min(0.94, v));
-  document.documentElement.style.setProperty('--dim', ST.dim);
-  const pct = Math.round((1 - ST.dim) * 100);
-  document.getElementById('dim-val').textContent = pct + '%';
-  document.getElementById('dim-slider').value = Math.round(ST.dim * 100);
-  saveST();
+// ── Auto re-login: silent only ──
+// On iOS PWA, only silent attempt is made.
+// If silent fails, we fall back to showing saved accounts for one-tap manual login.
+async function autoRelogin(entry){
+  return await tryTokenWithPrompt(entry,'');
 }
 
-let _ty0=null, _td0=null;
-document.addEventListener('touchstart', e => {
-  if (e.target.closest('#mpop') || e.target.closest('#inst')) return;
-  _ty0 = e.touches[0].clientY; _td0 = ST.dim;
-}, {passive:true});
-document.addEventListener('touchmove', e => {
-  if (_ty0==null || e.target.closest('#mpop')) return;
-  setDim(_td0 + (e.touches[0].clientY - _ty0) / window.innerHeight * 1.25);
-}, {passive:true});
-document.addEventListener('touchend', () => { _ty0=null; }, {passive:true});
-
-// ═══════════════════════════════════════════════════════
-//  INSTRUCTION OVERLAY
-// ═══════════════════════════════════════════════════════
-document.getElementById('inst').addEventListener('click', function() {
-  this.classList.add('fade');
-  setTimeout(()=>{ this.style.display='none'; }, 680);
-  startGPS();
-  startCompass();
-  requestWakeLock();
-});
-
-// ═══════════════════════════════════════════════════════
-//  MENU
-// ═══════════════════════════════════════════════════════
-let _mOpen = false;
-document.getElementById('mbtn').addEventListener('click', e => {
-  e.stopPropagation();
-  _mOpen = !_mOpen;
-  document.getElementById('mpop').classList.toggle('open', _mOpen);
-});
-document.getElementById('mclose').addEventListener('click', closeMenu);
-document.addEventListener('click', e => {
-  if (_mOpen && !e.target.closest('#mpop') && !e.target.closest('#mbtn')) closeMenu();
-});
-function closeMenu() { _mOpen=false; document.getElementById('mpop').classList.remove('open'); }
-
-// ─── Color ────────────────────────────────────────────
-function applyColor(hex) {
-  ST.color = hex;
-  setCSSColor(hex);
-  document.querySelectorAll('.sw').forEach(s => s.classList.toggle('on', s.dataset.c===hex));
-  document.getElementById('color-pick').value = hex;
-  saveST();
-}
-document.querySelectorAll('.sw').forEach(b => b.addEventListener('click', ()=>applyColor(b.dataset.c)));
-document.getElementById('color-pick').addEventListener('input', function() { applyColor(this.value); });
-
-// ─── Brightness slider ────────────────────────────────
-document.getElementById('dim-slider').addEventListener('input', function() {
-  setDim(parseFloat(this.value)/100);
-});
-
-// ─── Orientation ─────────────────────────────────────
-function setLayout(ls) {
-  ST.ls = ls;
-  document.body.classList.toggle('ls', ls);
-  document.body.classList.toggle('pt',!ls);
-  document.getElementById('btn-ls').classList.toggle('on', ls);
-  document.getElementById('btn-pt').classList.toggle('on',!ls);
-  saveST();
-}
-document.getElementById('btn-pt').addEventListener('click', ()=>setLayout(false));
-document.getElementById('btn-ls').addEventListener('click', ()=>setLayout(true));
-
-// ─── Mirror ───────────────────────────────────────────
-function applyXform() {
-  document.getElementById('hud-mirror').style.transform =
-    `scale(${ST.mH?-1:1},${ST.mV?-1:1})`;
-  document.getElementById('hud-ks').style.transform =
-    (ST.ksH===0 && ST.ksV===0) ? 'none'
-    : `perspective(900px) rotateY(${ST.ksH}deg) rotateX(${ST.ksV}deg)`;
-}
-document.getElementById('btn-mh').addEventListener('click', function() {
-  ST.mH=!ST.mH; this.textContent=ST.mH?'ON':'OFF';
-  this.classList.toggle('on',ST.mH); applyXform(); saveST();
-});
-document.getElementById('btn-mv').addEventListener('click', function() {
-  ST.mV=!ST.mV; this.textContent=ST.mV?'ON':'OFF';
-  this.classList.toggle('on',ST.mV); applyXform(); saveST();
-});
-
-// ─── Keystone sliders ─────────────────────────────────
-document.getElementById('ksh').addEventListener('input', function() {
-  ST.ksH = parseFloat(this.value);
-  document.getElementById('ksh-v').textContent = this.value+'°';
-  applyXform(); saveST();
-});
-document.getElementById('ksv').addEventListener('input', function() {
-  ST.ksV = parseFloat(this.value);
-  document.getElementById('ksv-v').textContent = this.value+'°';
-  applyXform(); saveST();
-});
-
-// ─── Keystone RESET ──────────────────────────────────
-document.getElementById('btn-ks-reset').addEventListener('click', () => {
-  ST.ksH = 0; ST.ksV = 0;
-  document.getElementById('ksh').value = 0;
-  document.getElementById('ksv').value = 0;
-  document.getElementById('ksh-v').textContent = '0°';
-  document.getElementById('ksv-v').textContent = '0°';
-  applyXform(); saveST();
-});
-
-// ═══════════════════════════════════════════════════════
-//  APPLY SAVED SETTINGS TO DOM
-// ═══════════════════════════════════════════════════════
-function applyAllToDOM() {
-  setCSSColor(ST.color);
-  document.querySelectorAll('.sw').forEach(s => s.classList.toggle('on', s.dataset.c===ST.color));
-  document.getElementById('color-pick').value = ST.color;
-
-  document.documentElement.style.setProperty('--dim', ST.dim);
-  document.getElementById('dim-slider').value = Math.round(ST.dim*100);
-  document.getElementById('dim-val').textContent = Math.round((1-ST.dim)*100)+'%';
-
-  document.body.classList.toggle('ls', ST.ls);
-  document.body.classList.toggle('pt',!ST.ls);
-  document.getElementById('btn-ls').classList.toggle('on', ST.ls);
-  document.getElementById('btn-pt').classList.toggle('on',!ST.ls);
-
-  document.getElementById('btn-mh').textContent = ST.mH?'ON':'OFF';
-  document.getElementById('btn-mh').classList.toggle('on', ST.mH);
-  document.getElementById('btn-mv').textContent = ST.mV?'ON':'OFF';
-  document.getElementById('btn-mv').classList.toggle('on', ST.mV);
-
-  document.getElementById('ksh').value = ST.ksH;
-  document.getElementById('ksv').value = ST.ksV;
-  document.getElementById('ksh-v').textContent = ST.ksH+'°';
-  document.getElementById('ksv-v').textContent = ST.ksV+'°';
-
-  applyXform();
-}
-
-// ═══════════════════════════════════════════════════════
-//  RESIZE OBSERVER
-// ═══════════════════════════════════════════════════════
-new ResizeObserver(() => { drawSpeed(); drawClock(); drawCompass(); })
-  .observe(document.getElementById('hud'));
-
-// ═══════════════════════════════════════════════════════
-//  SERVICE WORKER
-// ═══════════════════════════════════════════════════════
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('SW:',e));
+function tryTokenWithPrompt(entry, promptVal){
+  return new Promise(function(resolve){
+    var done=false;
+    // Timeout after 8s for silent, 60s for consent
+    var timeout=setTimeout(function(){if(!done){done=true;resolve(null);}}, promptVal===''?8000:60000);
+    try{
+      var tc=google.accounts.oauth2.initTokenClient({
+        client_id:entry.clientId||CLIENT_ID,
+        scope:SCOPES,
+        login_hint:entry.email,
+        prompt:promptVal,
+        callback:async function(resp){
+          clearTimeout(timeout);
+          if(done)return;
+          done=true;
+          if(resp.error||!resp.access_token){resolve(null);return;}
+          var token=resp.access_token;
+          var tokenExpiry=Date.now()+(resp.expires_in||3600)*1000;
+          var stored=loadSavedTokens().filter(function(a){return a.email!==entry.email;});
+          stored.push({email:entry.email,clientId:entry.clientId,displayName:entry.displayName,token:token,tokenExpiry:tokenExpiry});
+          saveTokens(stored);
+          resolve({email:entry.email,clientId:entry.clientId,displayName:entry.displayName,token:token});
+        }
+      });
+      tc.requestAccessToken({prompt:promptVal,login_hint:entry.email});
+    }catch(e){clearTimeout(timeout);if(!done){done=true;resolve(null);}}
   });
 }
 
-// ═══════════════════════════════════════════════════════
-//  BOOT
-// ═══════════════════════════════════════════════════════
-loadST();
-applyAllToDOM();
-loop();
+
+async function startLogin(){
+  const clientId=document.getElementById('client-id-input').value.trim()||CLIENT_ID;
+  await loadGis();
+  const tc=google.accounts.oauth2.initTokenClient({
+    client_id:clientId,scope:SCOPES,include_granted_scopes:true,
+    callback:async resp=>{
+      if(resp.error){showToast('❌ 認証エラー: '+resp.error);return;}
+      const token=resp.access_token;
+      // Token expires in resp.expires_in seconds
+      const tokenExpiry=Date.now()+(resp.expires_in||3600)*1000;
+      let email='',displayName='';
+      if(resp.id_token){try{const p=resp.id_token.split('.');const pl=JSON.parse(atob(p[1].replace(/-/g,'+').replace(/_/g,'/')));email=(pl.email||'').trim();displayName=(pl.name||'').trim();}catch{}}
+      if(!email){try{const r=await fetch('https://openidconnect.googleapis.com/v1/userinfo',{headers:{Authorization:`Bearer ${token}`}});const info=await r.json();email=(info.email||'').trim();displayName=(info.name||'').trim();}catch{}}
+      if(!email){try{const r=await fetch('https://www.googleapis.com/oauth2/v2/userinfo',{headers:{Authorization:`Bearer ${token}`}});const info=await r.json();email=(info.email||'').trim();displayName=(info.name||'').trim();}catch{}}
+      if(!displayName)displayName=email.split('@')[0]||'User';
+      if(!email){showToast('⚠ アカウント情報を取得できませんでした');return;}
+      // Update in-memory accounts
+      if(accounts.find(a=>a.email===email))accounts=accounts.map(a=>a.email===email?{...a,token,displayName}:a);
+      else accounts.push({email,clientId,token,displayName});
+      // Persist token
+      const saved=loadSavedTokens().filter(a=>a.email!==email);
+      saved.push({email,clientId,displayName,token,tokenExpiry});
+      saveTokens(saved);
+      showApp();loadAllEmails();renderTodos();
+      scheduleTokenRefresh();
+    }
+  });
+  tc.requestAccessToken({prompt:'consent'});
+}
+
+function showApp(){document.getElementById('login-screen').style.display='none';document.getElementById('app').style.display='';}
+function showLoginForm(){document.getElementById('login-screen').style.display='';document.getElementById('app').style.display='none';renderSavedAccounts(loadSavedTokens());}
+function logoutAll(){accounts=[];emails={unread:[],starred:[]};saveTokens([]);closeSettings();document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='';renderSavedAccounts([]);showToast('👋 ログアウトしました');}
+function logoutAccount(email){
+  accounts=accounts.filter(a=>a.email!==email);
+  saveTokens(loadSavedTokens().filter(a=>a.email!==email));
+  if(!accounts.length){logoutAll();return;}
+  emails.unread=emails.unread.filter(m=>m.acct!==email);emails.starred=emails.starred.filter(m=>m.acct!==email);
+  renderMailList();updateBadges();openSettings();showToast('👋 '+email+' をログアウト');
+}
+
+// ── Gmail API ──
+async function gmailGet(acct,path,params={}){const url=new URL(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`);Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));const r=await fetch(url,{headers:{Authorization:`Bearer ${acct.token}`}});if(r.status===401){showToast(`⚠ ${acct.email} の認証が切れました`);throw new Error('401');}if(!r.ok)throw new Error(`Gmail API ${r.status}`);return r.json();}
+async function gmailPost(acct,path,body){const r=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`,{method:'POST',headers:{Authorization:`Bearer ${acct.token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});if(r.status===401){showToast(`⚠ ${acct.email} の認証が切れました`);throw new Error('401');}if(!r.ok)throw new Error(`Gmail API ${r.status}`);return r.json();}
+
+async function loadAllEmails(){
+  if(!accounts.length)return;
+  document.getElementById('refresh-btn').classList.add('spinning');
+  document.getElementById('mail-list-container').innerHTML=[1,2,3,4].map(()=>`<div class="skeleton"><div class="skel-line" style="width:40%;height:10px"></div><div class="skel-line" style="width:80%"></div><div class="skel-line"></div></div>`).join('');
+  try{
+    const allU=[],allS=[];
+    await Promise.all(accounts.map(async acct=>{
+      const[ud,sd]=await Promise.all([gmailGet(acct,'messages',{q:'label:unread',maxResults:50}).catch(()=>({})),gmailGet(acct,'messages',{q:'label:starred',maxResults:50}).catch(()=>({}))]);
+      const[u,s]=await Promise.all([fetchDetails(acct,ud.messages||[]),fetchDetails(acct,sd.messages||[])]);
+      allU.push(...u);allS.push(...s);
+    }));
+    emails.unread=allU;emails.starred=allS;
+    renderAcctFilter();renderMailList();updateBadges();
+  }catch(e){document.getElementById('mail-list-container').innerHTML=`<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">読み込みエラー</div><div class="empty-sub">${esc(e.message)}</div></div>`;}
+  finally{document.getElementById('refresh-btn').classList.remove('spinning');}
+}
+
+async function fetchDetails(acct,list){if(!list.length)return[];const res=await Promise.all(list.slice(0,50).map(m=>gmailGet(acct,`messages/${m.id}`,{format:'full'}).catch(()=>null)));return res.filter(Boolean).map(msg=>parseMsg(msg,acct.email));}
+
+function b64ToBytes(b64){const std=b64.replace(/-/g,'+').replace(/_/g,'/');const raw=atob(std);const bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes;}
+function decodeB64UTF8(b64){try{return new TextDecoder('utf-8').decode(b64ToBytes(b64));}catch{return atob(b64.replace(/-/g,'+').replace(/_/g,'/'));}}
+
+function parseMsg(msg,acctEmail){
+  const h=n=>(msg.payload?.headers||[]).find(x=>x.name.toLowerCase()===n.toLowerCase())?.value||'';
+  let plain='',htmlBody='';
+  const attachments=[];
+  // Recursive extractor: collects text/html bodies AND attachments
+  const ext=function(parts){
+    for(const p of (parts||[])){
+      if(p.mimeType==='text/plain'&&p.body?.data) plain+=decodeB64UTF8(p.body.data);
+      else if(p.mimeType==='text/html'&&p.body?.data) htmlBody+=decodeB64UTF8(p.body.data);
+      if(p.parts) ext(p.parts);
+      // Collect attachment: has filename + attachmentId
+      if(p.filename&&p.filename.length>0&&p.body?.attachmentId){
+        attachments.push({
+          name:p.filename,
+          mimeType:p.mimeType||'application/octet-stream',
+          attachmentId:p.body.attachmentId,
+          size:p.body.size||0
+        });
+      }
+    }
+  };
+  if(msg.payload?.body?.data){
+    const ct=h('Content-Type')||'';
+    if(ct.includes('text/html')) htmlBody=decodeB64UTF8(msg.payload.body.data);
+    else plain=decodeB64UTF8(msg.payload.body.data);
+  }
+  ext(msg.payload?.parts);
+  plain=plain.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim();
+  let dateFmt='';
+  try{
+    const d=new Date(h('Date'));
+    const today=d.toDateString()===new Date().toDateString();
+    dateFmt=today?d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  }catch{}
+  return{
+    id:msg.id,threadId:msg.threadId,acct:acctEmail,
+    from:h('From').replace(/<[^>]+>/,'').trim()||h('From'),
+    fromEmail:(h('From').match(/<([^>]+)>/)||[])[1]||h('From'),
+    to:h('To'),subject:h('Subject')||'(件名なし)',date:dateFmt,
+    snippet:msg.snippet||'',
+    body:plain,           // No slice - show full body
+    htmlBody:htmlBody,    // No slice - show full HTML
+    attachments:attachments,
+    isUnread:(msg.labelIds||[]).includes('UNREAD'),
+    isStarred:(msg.labelIds||[]).includes('STARRED')
+  };
+}
+
+function renderAcctFilter(){const bar=document.getElementById('account-filter'),tabsBar=document.getElementById('mail-tabs-bar');if(accounts.length<=1){bar.innerHTML='';tabsBar.style.display='none';return;}tabsBar.style.display='';bar.innerHTML=`<button class="acct-chip ${activeAcctFilter==='all'?'active':''}" onclick="setAcctFilter('all')">すべて</button>`+accounts.map(a=>`<button class="acct-chip ${activeAcctFilter===a.email?'active':''}" onclick="setAcctFilter('${esc(a.email)}')">${esc(a.displayName||a.email.split('@')[0])}</button>`).join('');}
+function setAcctFilter(f){activeAcctFilter=f;renderAcctFilter();renderMailList();}
+function getFilteredList(){return(currentMailTab==='unread'?emails.unread:emails.starred).filter(m=>activeAcctFilter==='all'||m.acct===activeAcctFilter);}
+
+function renderMailList(){
+  const el=document.getElementById('mail-list-container');
+  const list=getFilteredList();
+  if(!list.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">${currentMailTab==='unread'?'📭':'⭐'}</div><div class="empty-title">${currentMailTab==='unread'?'未読メールなし':'スターなし'}</div><div class="empty-sub">すべて確認済みです</div></div>`;return;}
+  el.innerHTML='<div class="mail-list" style="padding:8px 0 12px;">'+list.map(function(m,i){
+    var tags=[];
+    if(m.isUnread)tags.push('<span class="icon-tag tag-unread">&#9679; 未読</span>');
+    if(m.isStarred)tags.push('<span class="icon-tag tag-starred">&#9733; スター</span>');
+    if(accounts.length>1)tags.push('<span class="icon-tag tag-acct">'+esc(m.acct.split('@')[0])+'</span>');
+    var bgCls='swipe-bg'+(m.isStarred?' starred-bg':'');
+    var starIcon=m.isStarred?'&#9734;':'&#9733;';
+    var cardCls='mail-card'+(m.isUnread?' unread':'')+(m.isStarred?' starred':'');
+    return '<div class="mail-card-wrap" data-idx="'+i+'">'
+      +'<div class="'+bgCls+'" id="swipe-act-'+i+'"><span class="swipe-star">'+starIcon+'</span></div>'
+      +'<div class="mail-card-inner">'
+      +'<div class="'+cardCls+'" onclick="openMail('+i+')">'
+      +'<div class="mail-header"><div class="mail-from">'+esc(m.from)+'</div><div class="mail-date">'+m.date+'</div></div>'
+      +'<div class="mail-subject">'+esc(m.subject)+'</div>'
+      +'<div class="mail-snippet">'+esc(m.snippet)+'</div>'
+      +(tags.length?'<div class="mail-footer">'+tags.join('')+'</div>':'')
+      +'</div></div></div>';
+  }).join('')+'</div>';
+  setupSwipeListeners();
+}
+function updateBadges(){const u=emails.unread.filter(m=>m.isUnread).length;document.getElementById('unread-count').textContent=`✉️ ${u}`;document.getElementById('star-count').textContent=`★ ${emails.starred.length}`;document.getElementById('nav-mail').classList.toggle('has-dot',u>0);}
+function switchMailTab(tab){currentMailTab=tab;['unread','starred'].forEach(t=>document.getElementById(`btab-${t}`).classList.toggle('active',t===tab));renderMailList();}
+
+// ── Mail Detail ──
+function openMail(idx){
+  const list=getFilteredList();
+  currentMail={...list[idx],_idx:idx};
+  document.getElementById('detail-subject').textContent=currentMail.subject;
+  document.getElementById('detail-from').textContent=currentMail.from;
+  document.getElementById('detail-to').textContent=currentMail.to;
+  document.getElementById('detail-date').textContent=currentMail.date;
+  document.getElementById('detail-acct').textContent=currentMail.acct;
+  // Reset thread UI
+  document.getElementById('thread-toggle').style.display='none';
+  document.getElementById('thread-messages').style.display='none';
+  document.getElementById('thread-messages').innerHTML='';
+  threadOpen=false;
+  // Attachments
+  renderAttachments(currentMail.attachments||[]);
+  // Body mode
+  bodyMode='plain';
+  setBodyMode(bodyMode);
+  updateStarBtn(currentMail.isStarred);
+  document.getElementById('detail-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  // Load thread in background
+  loadThread(currentMail);
+}
+
+function setBodyMode(mode){
+  bodyMode=mode;
+  document.getElementById('toggle-plain').classList.toggle('active',mode==='plain');
+  document.getElementById('toggle-html').classList.toggle('active',mode==='html');
+  var pe=document.getElementById('detail-body');
+  var he=document.getElementById('detail-body-html');
+  if(mode==='plain'){
+    pe.style.display='';
+    he.style.display='none';
+    pe.innerHTML=linkify(currentMail&&(currentMail.body||currentMail.snippet)||'(本文なし)');
+  }else{
+    pe.style.display='none';
+    he.style.display='';
+    var html=currentMail&&currentMail.htmlBody||'';
+    if(html){
+      // Sanitize and render HTML inline using DOMParser (avoids iframe sizing issues)
+      try{
+        var parser=new DOMParser();
+        var doc=parser.parseFromString(html,'text/html');
+        // Remove script tags for safety
+        doc.querySelectorAll('script,style[type="text/javascript"]').forEach(function(el){el.remove();});
+        // Fix images and links
+        doc.querySelectorAll('img').forEach(function(img){img.style.maxWidth='100%';img.style.height='auto';});
+        doc.querySelectorAll('a').forEach(function(a){a.target='_blank';a.rel='noopener noreferrer';});
+        doc.querySelectorAll('table').forEach(function(t){t.style.maxWidth='100%';t.style.width='100%';t.style.tableLayout='fixed';});
+        // Extract body content
+        var bodyContent=doc.body?doc.body.innerHTML:html;
+        he.innerHTML='<div style="font-family:sans-serif;font-size:14px;line-height:1.7;padding:14px;color:#111;word-break:break-word;overflow-x:hidden;box-sizing:border-box;">'+bodyContent+'</div>';
+      }catch(err){
+        he.innerHTML='<div style="padding:14px;font-size:13px;color:#555;">'+html+'</div>';
+      }
+    }else{
+      setBodyMode('plain');
+      showToast('HTMLコンテンツがありません');
+    }
+  }
+}
+
+function linkify(text){
+  // Split text into lines, escape each, then linkify URLs
+  return text.split('\n').map(line=>{
+    // Escape HTML first
+    const parts=[];
+    let rest=line;
+    const urlRe=/(https?:\/\/[^\s<>"']+)/g;
+    let m,last=0;
+    urlRe.lastIndex=0;
+    while((m=urlRe.exec(rest))!==null){
+      if(m.index>last)parts.push(esc(rest.slice(last,m.index)));
+      const url=m[1];
+      parts.push('<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" style="color:var(--accent2);word-break:break-all;text-decoration:underline;">'+esc(url)+'</a>');
+      last=m.index+url.length;
+    }
+    if(last<rest.length)parts.push(esc(rest.slice(last)));
+    return parts.join('');
+  }).join('<br>');
+}
+
+// ── Attachments ──
+function renderAttachments(list){
+  var bar=document.getElementById('attachments-bar');
+  if(!list||!list.length){bar.style.display='none';return;}
+  bar.style.display='flex';
+  var html='';
+  list.forEach(function(a){
+    var icon=getAttachIcon(a.mimeType);
+    var sz=a.size>1048576?(a.size/1048576).toFixed(1)+'MB':a.size>1024?Math.round(a.size/1024)+'KB':a.size+'B';
+    html+='<div class="attach-chip" data-aid="'+a.attachmentId+'" data-name="'+esc(a.name)+'" data-mt="'+esc(a.mimeType)+'" onclick="downloadAttachment(this.dataset.aid,this.dataset.name,this.dataset.mt)">'
+      +'<span class="attach-icon">'+icon+'</span>'
+      +'<span class="attach-name">'+esc(a.name)+'</span>'
+      +'<span class="attach-size">'+sz+'</span></div>';
+  });
+  bar.innerHTML=html;
+}
+
+
+function getAttachIcon(mt){
+  if(!mt)return '📎';
+  if(mt.startsWith('image/'))return '🖼';
+  if(mt.includes('pdf'))return '📄';
+  if(mt.includes('word')||mt.includes('document'))return '📝';
+  if(mt.includes('sheet')||mt.includes('excel'))return '📊';
+  if(mt.includes('zip')||mt.includes('compress'))return '🗜';
+  if(mt.startsWith('audio/'))return '🎵';
+  if(mt.startsWith('video/'))return '🎬';
+  return '📎';
+}
+
+async function downloadAttachment(attachmentId,name,mimeType){
+  if(!currentMail)return;
+  const acct=getAcct(currentMail.acct);if(!acct)return;
+  showToast('⬇ ダウンロード中…');
+  try{
+    const data=await gmailGet(acct,'messages/'+currentMail.id+'/attachments/'+attachmentId);
+    if(!data.data)throw new Error('データなし');
+    const bytes=b64ToBytes(data.data);
+    const blob=new Blob([bytes],{type:mimeType});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=name;a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+    showToast('✓ ダウンロード完了: '+name);
+  }catch(e){showToast('⚠ '+e.message);}
+}
+
+// ── Thread ──
+let currentThread=[];
+let threadOpen=false;
+
+async function loadThread(mail){
+  if(!mail.threadId)return;
+  const acct=getAcct(mail.acct);if(!acct)return;
+  try{
+    const data=await gmailGet(acct,'threads/'+mail.threadId,{format:'metadata',metadataHeaders:'From,Date,Subject'});
+    const msgs=data.messages||[];
+    if(msgs.length<=1)return;
+    currentThread=msgs;
+    const badge=document.getElementById('thread-count-badge');
+    badge.textContent=msgs.length+'件';
+    document.getElementById('thread-toggle').style.display='flex';
+  }catch{}
+}
+
+function toggleThread(){
+  threadOpen=!threadOpen;
+  const el=document.getElementById('thread-messages');
+  const lbl=document.getElementById('thread-toggle-label');
+  if(threadOpen){
+    el.style.display='';
+    lbl.textContent='スレッドを非表示';
+    renderThreadMessages();
+  }else{
+    el.style.display='none';
+    lbl.textContent='スレッドを表示';
+  }
+}
+
+function renderThreadMessages(){
+  var el=document.getElementById('thread-messages');
+  if(!currentThread.length){el.innerHTML='';return;}
+  var html='';
+  currentThread.forEach(function(m,i){
+    var hdrs=(m.payload&&m.payload.headers)||[];
+    var hdrVal=function(n){var f=hdrs.find(function(x){return x.name.toLowerCase()===n.toLowerCase();});return f?f.value:'';};
+    var from=hdrVal('From').replace(/<[^>]+>/,'').trim()||hdrVal('From');
+    var dateFmt='';
+    try{
+      var dateStr=hdrVal('Date');
+      if(dateStr){
+        var d=new Date(dateStr);
+        if(!isNaN(d.getTime())){
+          dateFmt=d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+        }
+      }
+    }catch{}
+    var cls='thread-msg'+(m.id===currentMail.id?' active-thread':'');
+    html+='<div class="'+cls+'" data-mid="'+m.id+'" onclick="openThreadMessage(this.dataset.mid)">'
+      +'<div class="thread-msg-header"><span class="thread-msg-from">'+esc(from)+'</span><span class="thread-msg-date">'+dateFmt+'</span></div>'
+      +'<div class="thread-msg-snippet">'+esc(m.snippet||'')+'</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+
+async function openThreadMessage(msgId){
+  const acct=getAcct(currentMail.acct);if(!acct)return;
+  showToast('読み込み中…');
+  try{
+    const msg=await gmailGet(acct,'messages/'+msgId,{format:'full'});
+    const parsed=parseMsg(msg,currentMail.acct);
+    currentMail={...parsed,_idx:currentMail._idx};
+    document.getElementById('detail-subject').textContent=currentMail.subject;
+    document.getElementById('detail-from').textContent=currentMail.from;
+    document.getElementById('detail-to').textContent=currentMail.to;
+    document.getElementById('detail-date').textContent=currentMail.date;
+    renderAttachments(currentMail.attachments||[]);
+    bodyMode=currentMail.htmlBody?'html':'plain';
+    setBodyMode(bodyMode);
+    updateStarBtn(currentMail.isStarred);
+    renderThreadMessages();
+    showToast('');
+  }catch(e){showToast('⚠ '+e.message);}
+}
+
+
+function openInGmail(){if(!currentMail)return;window.open(`https://mail.google.com/mail/u/0/#inbox/${currentMail.threadId||currentMail.id}`,'_blank');}
+function updateStarBtn(isStarred){const btn=document.getElementById('star-action-btn');if(!btn)return;btn.textContent='★ スター';btn.className='action-btn btn-star'+(isStarred?' on':'');}
+function closeDetail(){const panel=document.getElementById('reply-panel'),ta=document.getElementById('reply-textarea');if(panel.classList.contains('open')&&currentMail?.id&&ta.value.trim())saveDraft(currentMail.id,ta.value);panel.classList.remove('open');ta.value='';ta.oninput=null;showDraftInd(false);document.getElementById('detail-overlay').classList.remove('open');document.body.style.overflow='';currentMail=null;}
+function handleOverlayClick(e){if(e.target===document.getElementById('detail-overlay'))closeDetail();}
+function getAcct(email){return accounts.find(a=>a.email===email);}
+async function markRead(){if(!currentMail)return;const acct=getAcct(currentMail.acct);if(!acct)return;try{await gmailPost(acct,`messages/${currentMail.id}/modify`,{removeLabelIds:['UNREAD']});emails.unread=emails.unread.map(m=>m.id===currentMail.id?{...m,isUnread:false}:m);renderMailList();updateBadges();closeDetail();showToast('✓ 既読にしました');}catch(e){showToast('⚠ '+e.message);}}
+async function markUnread(){if(!currentMail)return;const acct=getAcct(currentMail.acct);if(!acct)return;try{await gmailPost(acct,`messages/${currentMail.id}/modify`,{addLabelIds:['UNREAD']});emails.unread=emails.unread.map(m=>m.id===currentMail.id?{...m,isUnread:true}:m);renderMailList();updateBadges();closeDetail();showToast('● 未読に戻しました');}catch(e){showToast('⚠ '+e.message);}}
+async function toggleStar(){if(!currentMail)return;const acct=getAcct(currentMail.acct);if(!acct)return;const addStar=!currentMail.isStarred;try{await gmailPost(acct,`messages/${currentMail.id}/modify`,addStar?{addLabelIds:['STARRED']}:{removeLabelIds:['STARRED']});currentMail.isStarred=addStar;emails.unread=emails.unread.map(m=>m.id===currentMail.id?{...m,isStarred:addStar}:m);emails.starred=emails.starred.map(m=>m.id===currentMail.id?{...m,isStarred:addStar}:m);if(addStar&&!emails.starred.find(m=>m.id===currentMail.id))emails.starred.unshift({...currentMail});else if(!addStar)emails.starred=emails.starred.filter(m=>m.id!==currentMail.id);updateStarBtn(addStar);renderMailList();updateBadges();showToast(addStar?'★ スターを付けました':'☆ スターを外しました');}catch(e){showToast('⚠ '+e.message);}}
+
+// ── Reply ──
+function toggleReply(){const panel=document.getElementById('reply-panel');if(panel.classList.contains('open')){closeReply();return;}panel.classList.add('open');document.getElementById('reply-to-addr').textContent=currentMail?.fromEmail||currentMail?.from||'—';const orig=(currentMail?.body||currentMail?.snippet||'').trim();const qb=document.getElementById('reply-quote-block');if(orig){document.getElementById('reply-quote-text').textContent=orig.slice(0,300)+(orig.length>300?'…':'');qb.style.display='';}else qb.style.display='none';const ta=document.getElementById('reply-textarea');const saved=loadDraft(currentMail?.id||'');if(saved){ta.value=saved;showDraftInd(true);}else{const sig=signature.trim();ta.value=sig?`\n\n--\n${sig}`:''; }setTimeout(()=>{ta.focus();ta.setSelectionRange(0,0);ta.scrollTop=0;},360);ta.oninput=()=>{clearTimeout(draftTimer);draftTimer=setTimeout(()=>{saveDraft(currentMail?.id||'',ta.value);showDraftInd(true);},800);};}
+function closeReply(){const ta=document.getElementById('reply-textarea');if(currentMail?.id&&ta.value.trim())saveDraft(currentMail.id,ta.value);document.getElementById('reply-panel').classList.remove('open');ta.oninput=null;showDraftInd(false);}
+async function sendReply(){if(!currentMail)return;const ta=document.getElementById('reply-textarea'),body=ta.value.trim();if(!body){showToast('⚠ 本文を入力してください');return;}const acct=getAcct(currentMail.acct);if(!acct){showToast('⚠ アカウント不明');return;}const btn=document.getElementById('reply-send-btn'),lbl=document.getElementById('reply-send-label'),spn=document.getElementById('reply-spinner');btn.disabled=true;lbl.style.display='none';spn.style.display='block';try{const to=currentMail.fromEmail||currentMail.from;const subj=currentMail.subject?.startsWith('Re:')?currentMail.subject:`Re: ${currentMail.subject||''}`;const orig=(currentMail.body||currentMail.snippet||'').trim();const full=body+(orig?'\n\n---\n'+currentMail.from+' wrote:\n'+orig:'');await gmailPost(acct,'messages/send',{raw:buildRaw(to,subj,full),threadId:currentMail.threadId||undefined});clearDraft(currentMail.id);await gmailPost(acct,`messages/${currentMail.id}/modify`,{removeLabelIds:['UNREAD']});emails.unread=emails.unread.map(m=>m.id===currentMail.id?{...m,isUnread:false}:m);renderMailList();updateBadges();closeReply();closeDetail();showToast('✉ 返信を送信しました');}catch(e){showToast('⚠ 送信失敗: '+e.message);}finally{btn.disabled=false;lbl.style.display='';spn.style.display='none';}}
+function toBase64UTF8(str){const bytes=new TextEncoder().encode(str);let b='';for(const x of bytes)b+=String.fromCharCode(x);return btoa(b);}
+function buildRaw(to,subj,body){const lines=[`To: ${to}`,`Subject: =?UTF-8?B?${toBase64UTF8(subj)}?=`,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',toBase64UTF8(body)];const raw=lines.join('\r\n');const bytes=new TextEncoder().encode(raw);let b='';for(const x of bytes)b+=String.fromCharCode(x);return btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+function getDraftKey(id){return `mf-draft-${id}`;}
+function loadDraft(id){try{return localStorage.getItem(getDraftKey(id))||'';}catch{return '';}}
+function saveDraft(id,t){try{t.trim()?localStorage.setItem(getDraftKey(id),t):localStorage.removeItem(getDraftKey(id));}catch{}}
+function clearDraft(id){try{localStorage.removeItem(getDraftKey(id));}catch{}}
+function showDraftInd(v){document.getElementById('draft-indicator').classList.toggle('visible',v);}
+
+
+// ── Swipe to star ──
+function setupSwipeListeners(){
+  document.querySelectorAll('.mail-card-wrap').forEach(function(wrap){
+    var inner=wrap.querySelector('.mail-card-inner');
+    var bg=wrap.querySelector('.swipe-bg');
+    var idx=parseInt(wrap.dataset.idx);
+    var startX=0,startY=0,tracking=false,maybeSwipe=false;
+    var THRESHOLD=Math.min(window.innerWidth*0.38,130); // ~38% of screen width
+
+    wrap.addEventListener('touchstart',function(e){
+      var t=e.touches[0];
+      startX=t.clientX;startY=t.clientY;tracking=true;maybeSwipe=false;
+    },{passive:true});
+
+    wrap.addEventListener('touchmove',function(e){
+      if(!tracking)return;
+      var t=e.touches[0];
+      var dx=t.clientX-startX;
+      var dy=t.clientY-startY;
+      // Only track leftward horizontal swipe
+      if(!maybeSwipe&&Math.abs(dy)>Math.abs(dx))return;
+      if(dx>0)return; // only left
+      maybeSwipe=true;
+      e.preventDefault();
+      var x=Math.max(-THRESHOLD*1.1,dx);
+      inner.style.transition='none';
+      inner.style.transform='translateX('+x+'px)';
+      // Show star background, highlight when past threshold
+      if(bg){
+        bg.classList.toggle('ready',Math.abs(dx)>THRESHOLD*0.7);
+      }
+    },{passive:false});
+
+    wrap.addEventListener('touchend',function(e){
+      if(!tracking)return;tracking=false;
+      if(!maybeSwipe){inner.style.transform='';return;}
+      var t=e.changedTouches[0];
+      var dx=t.clientX-startX;
+      inner.style.transition='';
+      if(bg)bg.classList.remove('ready');
+      if(dx<-THRESHOLD*0.7){
+        // Snap to reveal, then spring back after toggle
+        inner.style.transform='translateX(-'+Math.round(THRESHOLD*0.9)+'px)';
+        setTimeout(function(){
+          swipeToggleStar(idx);
+          inner.style.transition='transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94)';
+          inner.style.transform='translateX(0)';
+          setTimeout(function(){inner.style.transition='';},360);
+        },200);
+      }else{
+        inner.style.transform='translateX(0)';
+      }
+    },{passive:true});
+  });
+}
+
+async function swipeToggleStar(idx){
+  const list=getFilteredList();
+  const m=list[idx];if(!m)return;
+  const acct=getAcct(m.acct);if(!acct)return;
+  const addStar=!m.isStarred;
+  try{
+    await gmailPost(acct,`messages/${m.id}/modify`,addStar?{addLabelIds:['STARRED']}:{removeLabelIds:['STARRED']});
+    emails.unread=emails.unread.map(x=>x.id===m.id?{...x,isStarred:addStar}:x);
+    emails.starred=emails.starred.map(x=>x.id===m.id?{...x,isStarred:addStar}:x);
+    if(addStar&&!emails.starred.find(x=>x.id===m.id))emails.starred.unshift({...m,isStarred:true});
+    else if(!addStar)emails.starred=emails.starred.filter(x=>x.id!==m.id);
+    renderMailList();updateBadges();
+    showToast(addStar?'★ スターを付けました':'☆ スターを外しました');
+  }catch(e){showToast('⚠ '+e.message);}
+}
+
+function switchView(view){
+  ['mail','todo'].forEach(function(v){
+    document.getElementById('view-'+v).classList.toggle('active',v===view);
+    document.getElementById('nav-'+v).classList.toggle('active',v===view);
+  });
+  document.getElementById('bottom-mail-tabs').classList.toggle('visible',view==='mail');
+  if(view==='mail') renderAcctFilter();
+  if(view==='todo') renderTodos();
+}
+
+// ── ToDo ──
+
+function dbg(msg){
+  var el=document.getElementById('debug-panel');
+  if(!el)return;
+  var t=new Date().toLocaleTimeString('ja-JP');
+  el.innerHTML='<div>['+t+'] '+msg+'</div>'+el.innerHTML;
+  console.log('[MF]',msg);
+}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+const PLABELS={none:'',p3:'!',p2:'!!',p1:'!!!'};
+const PORDER={none:0,p3:1,p2:2,p1:3};
+
+function sortItems(items){
+  const pending=items.filter(i=>!i.done),done=items.filter(i=>i.done);
+  const sort=arr=>{
+    if(sortMode==='custom')return[...arr]; // preserve array order (drag-set)
+    if(sortMode==='added')return[...arr].sort((a,b)=>a.createdAt-b.createdAt);
+    if(sortMode==='date')return[...arr].sort((a,b)=>{const da=a.dueDate?new Date(`${a.dueDate}T${a.dueTime||'00:00'}`):null,db=b.dueDate?new Date(`${b.dueDate}T${b.dueTime||'00:00'}`):null;if(!da&&!db)return a.createdAt-b.createdAt;if(!da)return 1;if(!db)return-1;return da-db||a.createdAt-b.createdAt;});
+    if(sortMode==='priority')return[...arr].sort((a,b)=>(PORDER[b.priority||'none']-PORDER[a.priority||'none'])||a.createdAt-b.createdAt);
+    return arr;
+  };
+  return[...sort(pending),...[...done].sort((a,b)=>(b.doneAt||0)-(a.doneAt||0))];
+}
+
+function toggleShowDone(){showDone=!showDone;dbSet('showDone',showDone);renderTodos();}
+function cycleSortMode(){const modes=['custom','added','date','priority'],labels={custom:'カスタム ↕',added:'追加順 ↕',date:'日付順 📅',priority:'優先度順 ⚡'};sortMode=modes[(modes.indexOf(sortMode)+1)%modes.length];dbSet('sortMode',sortMode);renderTodos();}
+
+function renderTodos(){
+  var c=document.getElementById('todo-groups-container');if(!c)return;
+  var labels={custom:'カスタム ↕',added:'追加順 ↕',date:'日付順 📅',priority:'優先度順 ⚡'};
+  var sb=document.getElementById('sort-btn');if(sb){sb.textContent=labels[sortMode]||'カスタム ↕';sb.classList.add('active');}
+  var sdb=document.getElementById('show-done-btn');if(sdb){sdb.textContent=showDone?'完了済みを非表示':'完了済みを表示';sdb.classList.toggle('active',showDone);}
+  document.getElementById('nav-todo').classList.toggle('has-dot',todoGroups.flatMap(function(g){return g.items;}).filter(function(i){return !i.done;}).length>0);
+  var html='';
+  todoGroups.forEach(function(g){
+    var sorted=sortItems(g.items);
+    var visible=showDone?sorted:sorted.filter(function(i){return !i.done;});
+    var pc=g.items.filter(function(i){return !i.done;}).length;
+    var addH=addingToGroup===g.id?buildAddForm(g.id):'';
+    var delBtn=g.id!=='default'?'<button class="todo-group-btn del" data-gid="'+g.id+'" onclick="deleteGroup(this.dataset.gid)" title="グループを削除">🗑</button>':'';
+    var dz='<div class="group-drop-zone" data-gid="'+g.id+'" id="dz-'+g.id+'" ondragover="onDZOver(event,this.dataset.gid)" ondragleave="onDZLeave(this.dataset.gid)" ondrop="onDZDrop(event,this.dataset.gid)">ここにドロップ</div>';
+    var itemsHtml='';
+    visible.forEach(function(item){itemsHtml+=renderItem(item,g.id);});
+    html+='<div class="todo-group" data-gid="'+g.id+'">'
+      +'<div class="todo-group-header">'
+      +'<span class="todo-group-name">'+esc(g.name)+'</span>'
+      +'<span class="todo-group-count">'+pc+'件</span>'
+      
+      +delBtn
+      +'</div>'+dz+addH
+      +'<div data-items-gid="'+g.id+'">'+itemsHtml+'</div></div>';
+  });
+  c.innerHTML=html;
+  if(addingToGroup){setTimeout(function(){var el=document.getElementById('gadd-text-'+addingToGroup);if(el)el.focus();},50);}
+}
+
+// ── Drag & Drop ──
+function onItemDragStart(e,iid,gid){
+  dragItem=iid;dragSourceGid=gid;
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',iid);
+  setTimeout(()=>e.target.classList.add('dragging'),0);
+  // Show all drop zones
+  document.querySelectorAll('.group-drop-zone').forEach(z=>z.classList.add('active'));
+}
+function onItemDragOver(e,iid,gid){
+  e.preventDefault();e.dataTransfer.dropEffect='move';
+  if(iid===dragItem)return;
+  document.querySelectorAll('.todo-item.drag-over').forEach(el=>el.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+  dragOverItem=iid;dragOverGid=gid;
+}
+function onItemDragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function onItemDrop(e,targetIid,targetGid){
+  e.preventDefault();e.stopPropagation();
+  if(!dragItem)return;
+  moveItem(dragItem,dragSourceGid,targetIid,targetGid);
+  onDragEnd();
+}
+function onDZOver(e,gid){e.preventDefault();e.dataTransfer.dropEffect='move';document.getElementById(`dz-${gid}`)?.classList.add('active');}
+function onDZLeave(gid){/* keep active for visual */}
+function onDZDrop(e,gid){
+  e.preventDefault();e.stopPropagation();
+  if(!dragItem||dragSourceGid===gid)return;
+  // Move to end of target group
+  moveItem(dragItem,dragSourceGid,null,gid);
+  onDragEnd();
+}
+function onDragEnd(){
+  document.querySelectorAll('.todo-item.dragging,.todo-item.drag-over').forEach(el=>{el.classList.remove('dragging','drag-over');});
+  document.querySelectorAll('.group-drop-zone').forEach(z=>z.classList.remove('active'));
+  dragItem=null;dragSourceGid=null;dragOverItem=null;dragOverGid=null;
+}
+
+function moveItem(iid,srcGid,targetIid,targetGid){
+  const srcGroup=todoGroups.find(g=>g.id===srcGid);
+  const tgtGroup=todoGroups.find(g=>g.id===targetGid);
+  if(!srcGroup||!tgtGroup)return;
+  const item=srcGroup.items.find(i=>i.id===iid);
+  if(!item)return;
+  // Remove from source
+  srcGroup.items=srcGroup.items.filter(i=>i.id!==iid);
+  if(targetIid&&srcGid===targetGid){
+    // Reorder within same group: insert before target
+    const tIdx=tgtGroup.items.findIndex(i=>i.id===targetIid);
+    tgtGroup.items.splice(tIdx,0,item);
+  }else if(targetIid){
+    // Move to different group, insert before target
+    const tIdx=tgtGroup.items.findIndex(i=>i.id===targetIid);
+    tgtGroup.items.splice(tIdx,0,item);
+  }else{
+    // Move to end of target group
+    tgtGroup.items.push(item);
+  }
+  // Switch to custom sort to preserve drag order
+  sortMode='custom';
+  dbSet('sortMode','custom');
+  saveTodosDB();
+  renderTodos();
+}
+
+function addTodo(){
+  const inp=document.getElementById('todo-input');
+  if(!inp)return;
+  const text=inp.value.trim();
+  if(!text)return;
+  let g=todoGroups.find(function(x){return x.id==='default';});
+  if(!g)g=todoGroups[0];
+  if(!g)return;
+  g.items.push({id:genId(),text,done:false,priority:'none',dueDate:'',dueTime:'',createdAt:Date.now()});
+  inp.value='';
+  saveTodosDB();
+  renderTodos();
+  showToast('✓ タスクを追加しました');
+}
+function startGroupAdd(gid){addingToGroup=gid;editingId=null;renderTodos();}
+function cancelGroupAdd(){addingToGroup=null;renderTodos();}
+function submitGroupAdd(gid){
+  const text=document.getElementById(`gadd-text-${gid}`)?.value.trim();if(!text){showToast('⚠ タスク名を入力してください');return;}
+  const prio=getSelectedPrio(`gadd-prio-${gid}`);
+  const dueDate=document.getElementById(`gadd-date-${gid}`)?.value||'';
+  const dueTime=document.getElementById(`gadd-time-${gid}`)?.value||'';
+  const g=todoGroups.find(g=>g.id===gid);if(!g)return;
+  g.items.push({id:genId(),text,done:false,priority:prio,dueDate,dueTime,createdAt:Date.now()});
+  addingToGroup=null;saveTodosDB();renderTodos();
+}
+function toggleItem(gid,iid){const g=todoGroups.find(g=>g.id===gid);if(!g)return;const item=g.items.find(i=>i.id===iid);if(!item)return;item.done=!item.done;item.doneAt=item.done?Date.now():undefined;saveTodosDB();renderTodos();}
+function deleteItem(gid,iid){const g=todoGroups.find(g=>g.id===gid);if(!g)return;g.items=g.items.filter(i=>i.id!==iid);if(editingId===iid)editingId=null;saveTodosDB();renderTodos();}
+function startEdit(iid){editingId=iid;addingToGroup=null;renderTodos();setTimeout(()=>document.getElementById(`etext-${iid}`)?.focus(),50);}
+function cancelEdit(){editingId=null;renderTodos();}
+function saveEdit(gid,iid){
+  const text=document.getElementById(`etext-${iid}`)?.value.trim();if(!text){showToast('⚠ タスク名を入力してください');return;}
+  const prio=getSelectedPrio(`eprio-${iid}`);
+  const dueDate=document.getElementById(`edate-${iid}`)?.value||'';
+  const dueTime=document.getElementById(`etime-${iid}`)?.value||'';
+  const g=todoGroups.find(g=>g.id===gid);if(!g)return;
+  const item=g.items.find(i=>i.id===iid);if(!item)return;
+  item.text=text;item.priority=prio;item.dueDate=dueDate;item.dueTime=dueTime;
+  editingId=null;saveTodosDB();renderTodos();
+}
+
+function openGroupModal(){document.getElementById('group-modal').classList.add('open');setTimeout(()=>document.getElementById('group-name-input').focus(),100);}
+function closeGroupModal(){document.getElementById('group-modal').classList.remove('open');document.getElementById('group-name-input').value='';}
+function submitAddGroup(){const name=document.getElementById('group-name-input').value.trim();if(!name){showToast('⚠ グループ名を入力してください');return;}todoGroups.push({id:genId(),name,items:[]});closeGroupModal();saveTodosDB();renderTodos();}
+document.getElementById('group-name-input')?.addEventListener('keydown',e=>{if(e.key==='Enter')submitAddGroup();});
+// Use event delegation for todo-input since it's not recreated
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    if(document.activeElement&&document.activeElement.id==='todo-input')addTodo();
+    if(document.activeElement&&document.activeElement.id==='group-name-input')submitAddGroup();
+  }
+});
+
+function deleteGroup(gid){
+  const g=todoGroups.find(g=>g.id===gid);if(!g)return;
+  if(gid==='default'){showToast('⚠ デフォルトグループは削除できません');return;}
+  // Move items to default group
+  const def=todoGroups.find(g=>g.id==='default');
+  if(def&&g.items.length){def.items.push(...g.items);showToast(`📦 ${g.items.length}件をデフォルトに移動しました`);}
+  todoGroups=todoGroups.filter(g=>g.id!==gid);
+  saveTodosDB();renderTodos();
+}
+
+// ── Settings ──
+function openSettings(){
+  document.getElementById('sig-textarea').value=signature;
+  document.getElementById('settings-accounts-list').innerHTML=accounts.map(a=>{const name=(a.displayName||'').trim()||a.email.split('@')[0];return `<div class="account-chip" style="margin-bottom:5px"><div class="account-avatar">${name[0].toUpperCase()}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</div><div style="font-size:10px;color:var(--text3);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.email)}</div></div><button class="account-remove" onclick="logoutAccount('${esc(a.email)}')">✕</button></div>`;}).join('');
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('open');}
+function saveSettings(){signature=document.getElementById('sig-textarea').value;dbSet('signature',signature);closeSettings();showToast('✓ 署名を保存しました');}
+function showSetupGuide(){document.getElementById('guide-origin').textContent=location.origin;document.getElementById('guide-modal').classList.add('open');}
+function closeGuide(){document.getElementById('guide-modal').classList.remove('open');}
+
+let toastTimer;
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800);}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Swipe down to close detail sheet ──
+(function(){
+  var area=document.getElementById('sheet-close-area');
+  if(!area)return;
+  var startY=0,startX=0;
+  area.addEventListener('touchstart',function(e){
+    startY=e.touches[0].clientY;
+    startX=e.touches[0].clientX;
+  },{passive:true});
+  area.addEventListener('touchend',function(e){
+    var dy=e.changedTouches[0].clientY-startY;
+    var dx=Math.abs(e.changedTouches[0].clientX-startX);
+    if(dy>40&&dx<60) closeDetail();
+  },{passive:true});
+  // Also close on tap of handle area
+  area.addEventListener('click',function(){closeDetail();});
+})();
+
+if('serviceWorker' in navigator){
+  // Unregister any old service workers, then register fresh
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    var unregPromises=regs.map(function(r){ return r.unregister(); });
+    return Promise.all(unregPromises);
+  }).then(function(){
+    return navigator.serviceWorker.register('sw.js?v=1.6.5');
+  }).then(function(reg){
+    reg.addEventListener('updatefound', function(){
+      var sw=reg.installing;
+      if(sw) sw.addEventListener('statechange', function(){
+        if(sw.state==='activated') window.location.reload(true);
+      });
+    });
+  }).catch(function(e){ console.warn('SW error:', e); });
+}
+switchView('mail');
 </script>
 </body>
-</html>
+</htmlfunction renderItem(item,gid){
+  var prio=item.priority||'none';
+  var prioLbl=PLABELS[prio];
+  var prioClass=prio!=='none'?'todo-priority '+prio:'';
+  var datePart='';
+  if(item.dueDate){
+    var d=new Date(item.dueDate+'T'+(item.dueTime||'00:00'));
+    var over=!item.done&&d<new Date();
+    var fmt=item.dueTime?d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'})+' '+item.dueTime:d.toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});
+    datePart='<span class="todo-date-tag'+(over?' overdue':'')+'">'+fmt+'</span>';
+  }
+  if(editingId===item.id)return renderEditPanel(item,gid);
+  var metaHtml=(prioLbl||datePart)?'<div class="todo-meta">'+(prioLbl?'<span class="'+prioClass+'">'+prioLbl+'</span>':'')+datePart+'</div>':'';
+  var doneCls=item.done?' done':'';
+  return '<div class="todo-item'+doneCls+'" draggable="true" data-iid="'+item.id+'" data-gid="'+gid+'"'
+    +' ondragstart="onItemDragStart(event,this.dataset.iid,this.dataset.gid)"'
+    +' ondragover="onItemDragOver(event,this.dataset.iid,this.dataset.gid)"'
+    +' ondragleave="onItemDragLeave(event)"'
+    +' ondrop="onItemDrop(event,this.dataset.iid,this.dataset.gid)"'
+    +' ondragend="onDragEnd()">'
+    +'<span class="drag-handle">&#8942;</span>'
+    +'<button class="todo-check" data-gid="'+gid+'" data-iid="'+item.id+'" onclick="toggleItem(this.dataset.gid,this.dataset.iid)"><span class="todo-check-icon">&#10003;</span></button>'
+    +'<div class="todo-body"><div class="todo-text" data-gid="'+gid+'" data-iid="'+item.id+'" onclick="startEdit(this.dataset.iid)">'+esc(item.text)+'</div>'+metaHtml+'</div>'
+    +'<div class="todo-actions">'
+    +'<button class="todo-action-btn" data-iid="'+item.id+'" onclick="startEdit(this.dataset.iid)">&#9998;</button>'
+    +'<button class="todo-action-btn todo-del-btn" data-gid="'+gid+'" data-iid="'+item.id+'" onclick="deleteItem(this.dataset.gid,this.dataset.iid)">&#10005;</button>'
+    +'</div></div>';
+}
+>

@@ -1,23 +1,23 @@
 {
-  "name": "HUD Display",
-  "short_name": "HUD",
-  "description": "Car Head-Up Display v0.1.2",
-  "start_url": "./",
-  "display": "fullscreen",
-  "orientation": "any",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "name": "MailFocus",
+  "short_name": "MailFocus",
+  "description": "Gmail未読・スターメール + ToDoリスト",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "icon-192.svg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png",
+      "src": "icon-512.svg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]
