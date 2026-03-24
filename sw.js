@@ -1,62 +1,45 @@
+// MailFocus Service Worker - Network First
+// Cache name includes timestamp to force update
 const CACHE = 'mailfocus-v1.6.5';
-const SHELL = ['./', './index.html', './manifest.json'];
 
+// On install: skip waiting immediately so new SW takes over fast
 self.addEventListener('install', e => {
-  // Force immediate activation, skip waiting
   self.skipWaiting();
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(SHELL))
-  );
 });
 
+// On activate: delete ALL caches and claim clients
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
-    .then(() => {
-      // Tell all open pages to reload so they get the new SW immediately
-      return self.clients.matchAll({type:'window'}).then(clients => {
-        clients.forEach(client => client.postMessage({type:'SW_UPDATED'}));
-      });
-    })
+    caches.keys()
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
+// On fetch: ALWAYS network for HTML, cache only for fonts/icons
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Always network for APIs and auth
-  if (['googleapis.com','accounts.google.com','apis.google.com','fonts.googleapis.com','fonts.gstatic.com']
-      .some(d => url.hostname.includes(d))) {
-    e.respondWith(fetch(e.request).catch(() => new Response('', { status: 503 })));
+  // External APIs: always network
+  if (['googleapis.com','accounts.google.com','apis.google.com',
+       'fonts.googleapis.com','fonts.gstatic.com'].some(d => url.hostname.includes(d))) {
+    e.respondWith(fetch(e.request).catch(() => new Response('', {status:503})));
     return;
   }
 
-  // Network-first for HTML pages (ensures latest code is always used)
-  if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/') {
+  // HTML pages: ALWAYS network, never cache
+  if (e.request.mode === 'navigate' ||
+      e.request.headers.get('accept')?.includes('text/html')) {
     e.respondWith(
-      fetch(e.request)
-        .then(resp => {
-          if (resp.ok) {
-            const clone = resp.clone();
-            caches.open(CACHE).then(c => c.put(e.request, clone));
-          }
-          return resp;
-        })
-        .catch(() => caches.match(e.request))
+      fetch(e.request, {cache: 'no-store'}).catch(() =>
+        new Response('<h1>オフラインです</h1>', {headers:{'Content-Type':'text/html'}})
+      )
     );
     return;
   }
 
-  // Cache-first for other static assets (fonts, icons, etc.)
+  // Everything else: network first, fall back to cache
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(resp => {
-        if (resp.ok) caches.open(CACHE).then(c => c.put(e.request, resp.clone()));
-        return resp;
-      });
-    })
+    fetch(e.request, {cache: 'no-store'}).catch(() => caches.match(e.request))
   );
 });

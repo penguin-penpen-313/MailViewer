@@ -509,7 +509,7 @@ function isTokenValid(entry){
 
 // ── Boot ──
 window.onload=async()=>{
-  dbg('=== onload start ===');
+  dbg('=== onload start === CODE VERSION: v1.6.5 ===');
   dbg('localStorage available: '+(typeof localStorage!=='undefined'));
   dbg('localStorage.length: '+localStorage.length);
   // List all keys
@@ -1334,19 +1334,20 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 })();
 
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').then(function(reg){
+  // Unregister any old service workers, then register fresh
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    var unregPromises=regs.map(function(r){ return r.unregister(); });
+    return Promise.all(unregPromises);
+  }).then(function(){
+    return navigator.serviceWorker.register('sw.js?v=1.6.5');
+  }).then(function(reg){
     reg.addEventListener('updatefound', function(){
-      var newSW=reg.installing;
-      if(newSW){
-        newSW.addEventListener('statechange', function(){
-          if(newSW.state==='activated') window.location.reload(true);
-        });
-      }
+      var sw=reg.installing;
+      if(sw) sw.addEventListener('statechange', function(){
+        if(sw.state==='activated') window.location.reload(true);
+      });
     });
-  }).catch(function(){});
-  navigator.serviceWorker.addEventListener('message', function(e){
-    if(e.data&&e.data.type==='SW_UPDATED') window.location.reload(true);
-  });
+  }).catch(function(e){ console.warn('SW error:', e); });
 }
 switchView('mail');
 </script>
